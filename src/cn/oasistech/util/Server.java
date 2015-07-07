@@ -1,6 +1,6 @@
 package cn.oasistech.util;
 
 public interface Server {
-    public void start(int port);
+    public boolean start(Address address);
     public void stop();
 }

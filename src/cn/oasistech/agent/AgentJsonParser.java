@@ -8,9 +8,6 @@ public class AgentJsonParser implements AgentParser {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Logger logger = new Logger().addPrinter(System.out);
     
-    private AgentJsonParser() {}
-    public final static AgentParser instance = new AgentJsonParser();
-    
     @Override
     public byte[] encodeRequest(Request request) {
         try {

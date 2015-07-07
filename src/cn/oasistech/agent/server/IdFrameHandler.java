@@ -28,17 +28,33 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
     }
     
     @Override
+    public void channelActive(final ChannelHandlerContext ctx) {
+        if (agentCtx.getChannelMap().get(ctx.channel()) == null) {
+            Peer<Channel> peer = addNewPeer(ctx.channel());
+            logger.log("add new peer when channel active:%s", peer.toString());
+        }
+    }
+    
+    @Override
+    public void channelInactive(final ChannelHandlerContext ctx) {
+        Peer<Channel> peer = agentCtx.getChannelMap().get(ctx.channel());
+        if (peer == null) {
+            logger.log("can't find peer when channelInactive");
+        } else {
+            removeDisconnectedPeer(peer);
+            logger.log("remove peer when channelInactive:%s", peer.toString());
+        }
+    }
+    
+    @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         try {
             Peer<Channel> peer = agentCtx.getChannelMap().get(ctx.channel());
     
             // a new peer connected
             if (peer == null) {
-                int id = agentCtx.getIdGenerator().getId();
-                peer = new Peer<Channel>(id, ctx.channel());
-                setPublicTag(peer);
-                agentCtx.getChannelMap().put(ctx.channel(), peer);
-                agentCtx.getIdMap().put(id, peer);
+                peer = addNewPeer(ctx.channel());
+                logger.log("add new peer when channelRead:%s", peer.toString());
             }
 
             IdFrame idFrame = (IdFrame) msg;
@@ -112,11 +128,24 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         
         Peer<Channel> peer = agentCtx.getChannelMap().get(ctx.channel());
         if (peer == null) {
-            logger.log("can't find peer of disconnecting host");
+            logger.log("can't find peer when exception");
         } else {
-            agentCtx.getIdMap().remove(peer.getId());
-            agentCtx.getChannelMap().remove(peer.getChannel());
-            logger.log("remove connections :%s", peer.toString());
+            removeDisconnectedPeer(peer);
+            logger.log("remove peer when exception:%s", peer.toString());
         }
+    }
+    
+    private Peer<Channel> addNewPeer(Channel channel) {
+        int id = agentCtx.getIdGenerator().getId();
+        Peer<Channel> peer = new Peer<Channel>(id, channel);
+        setPublicTag(peer);
+        agentCtx.getChannelMap().put(channel, peer);
+        agentCtx.getIdMap().put(id, peer);
+        return peer;
+    }
+    
+    private void removeDisconnectedPeer(Peer<Channel> peer) {
+        agentCtx.getIdMap().remove(peer.getId());
+        agentCtx.getChannelMap().remove(peer.getChannel());
     }
 }

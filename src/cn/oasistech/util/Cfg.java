@@ -4,15 +4,12 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.Properties;
 
 public class Cfg {
     public enum Key {
         serveraddr,
-        serverport,
+        parserclass
     }
     
     public static String getRoot() {
@@ -46,15 +43,13 @@ public class Cfg {
         return getProperties(getCfgFile(AgentCfgFileName));
     }
     
-    public final static InetSocketAddress getServerAddress() {
+    public final static String getServerAddress() {
         Properties p = Cfg.getAgentCfg();
-        String serveraddr = p.getProperty(Cfg.Key.serveraddr.name()).trim();
-        Integer port = NumberUtil.parseInt(p.getProperty(Cfg.Key.serverport.name()).trim());
-        try {
-            return new InetSocketAddress(InetAddress.getByName(serveraddr), port);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return p.getProperty(Cfg.Key.serveraddr.name()).trim();
+    }
+    
+    public final static String getParserClassName() {
+        Properties p = Cfg.getAgentCfg();
+        return p.getProperty(Cfg.Key.parserclass.name()).trim();
     }
 }

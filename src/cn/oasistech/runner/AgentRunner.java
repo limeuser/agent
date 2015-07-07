@@ -3,48 +3,44 @@ package cn.oasistech.runner;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import cn.oasistech.agent.AgentJsonParser;
-import cn.oasistech.agent.AgentParser;
 import cn.oasistech.agent.AgentProtocol;
+import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.IdKey;
 import cn.oasistech.agent.client.AgentAsynRpc;
-import cn.oasistech.agent.client.AgentClientHandler;
+import cn.oasistech.agent.client.AgentRpcHandler;
 import cn.oasistech.agent.client.AgentSyncRpc;
 import cn.oasistech.agent.server.AgentNettyServer;
-import cn.oasistech.util.AsynClient;
+import cn.oasistech.service.AgentService;
+import cn.oasistech.service.Echo;
+import cn.oasistech.service.Shell;
+import cn.oasistech.service.Text;
+import cn.oasistech.util.Address;
 import cn.oasistech.util.Cfg;
 import cn.oasistech.util.NumberUtil;
 import cn.oasistech.util.Server;
-import cn.oasistech.util.SyncClient;
+import cn.oasistech.util.StringUtil;
 import cn.oasistech.util.Tag;
 
-public class Runner {
+public class AgentRunner {
     private static Server agentServer;
-    private static InetSocketAddress server;
-    private static SyncClient syncClient;
-    private static AsynClient asynClient;
+    private static Address agentAddress;
     private static AgentSyncRpc agentSyncRpc;
     private static AgentAsynRpc agentAsynRpc;
+    private static Map<String, AgentService> services;
     
-    public static void main(String[] args) {
-        try {
-            AgentParser parser = AgentJsonParser.instance;
-            server = Cfg.getServerAddress();
-            agentServer = new AgentNettyServer(AgentJsonParser.instance);
-            syncClient = new SyncClient();
-            asynClient = new AsynClient(new AgentClientHandler(parser));
-            agentSyncRpc = new AgentSyncRpc(syncClient, parser);
-            agentAsynRpc = new AgentAsynRpc(asynClient, parser);
-            
-            processUserCommand();
-        }
-        catch (Exception e) {
-            System.out.println("read your input error: " + e.getMessage());
-        }
+    public static void main(String[] args) throws IOException {
+        agentAddress = Address.parse(Cfg.getServerAddress());
+        agentServer = new AgentNettyServer();
+        agentSyncRpc = new AgentSyncRpc();
+        agentAsynRpc = new AgentAsynRpc();
+        services = new HashMap<String, AgentService>();
+
+        processUserCommand();
     }
     
     private static void echoHint() {
@@ -73,19 +69,31 @@ public class Runner {
             String object = tokens[1];
             if (action.equals("start")) {
                 if (object.equals("server")) {
-                    agentServer.start(server.getPort());
+                    agentServer.start(agentAddress);
                 } else if (object.equals("client")) {
-                    syncClient.start(server);
-                    asynClient.start(server);
+                    agentSyncRpc.start(agentAddress);
+                    agentAsynRpc.start(agentAddress, new LogHandler());
                 } else if (object.equals("service")) {
-                    
+                    if (tokens.length != 3) {
+                        echo("bad command");
+                        continue;
+                    }
+                    String service = tokens[2];
+                    addService(service);
                 }
             } else if (action.equals("stop")) {
                 if (object.equals("server")) {
                     agentServer.stop();
                 } else if (object.equals("client")) {
-                    syncClient.stop();
-                    asynClient.stop();
+                    agentSyncRpc.stop();
+                    agentAsynRpc.stop();
+                } else if (object.equals("service")) {
+                    if (tokens.length != 3) {
+                        echo("bad command");
+                        continue;
+                    }
+                    String service = tokens[2];
+                    removeService(service);
                 }
             } 
             // get tag id1 id2 id3 key1 key2 ...
@@ -171,6 +179,39 @@ public class Runner {
             }
             
             echoHint();
+        }
+    }
+    
+    public static class LogHandler implements AgentRpcHandler {
+        @Override
+        public void handle(AgentAsynRpc rpc, IdFrame idFrame) {
+            System.out.println("recv message from " + idFrame.getId() + ": " + StringUtil.getUTF8String(idFrame.getBody()));
+        }
+    }
+    
+    private static void addService(String service) {
+        if (service.equals("echo")) {
+            addService(service, new Echo());
+        } else if (service.equals("shell")) {
+            addService(service, new Shell());
+        } else if (service.equals("text")) {
+            addService(service, new Text());
+        }
+    }
+    
+    private static void addService(String name, AgentService service) {
+        if (services.get(name) == null) {
+            if (service.start(agentAddress)) {
+                services.put(name, service);
+            }
+        }
+    }
+    
+    private static void removeService(String name) {
+        AgentService service = services.get(name);
+        if (service != null) {
+            service.stop();
+            services.remove(name);
         }
     }
 }

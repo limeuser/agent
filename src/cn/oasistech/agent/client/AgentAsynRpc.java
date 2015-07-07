@@ -5,18 +5,69 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cn.oasistech.agent.*;
-import cn.oasistech.util.AsynClient;
+import cn.oasistech.util.Address;
+import cn.oasistech.util.SocketClient;
+import cn.oasistech.util.Cfg;
+import cn.oasistech.util.ClassUtil;
 import cn.oasistech.util.Logger;
 import cn.oasistech.util.Tag;
 
 public class AgentAsynRpc {
-    private AsynClient client;
+    private SocketClient client;
     private AgentParser parser;
+    private AgentRpcHandler handler;
+    private byte[] buffer;
+    private Thread readerThread;
     private final static Logger logger = new Logger().addPrinter(System.out);
     
-    public AgentAsynRpc(AsynClient client, AgentParser parser) {
-        this.client = client;
-        this.parser = parser;
+    public boolean start(Address address, AgentRpcHandler handler) {
+        this.parser = ClassUtil.newInstance(Cfg.getParserClassName());
+        if (parser == null) {
+            return false;
+        }
+        
+        this.client = new SocketClient();
+        boolean success = this.client.start(address);
+        if (success == false) {
+            this.client = null;
+            return false;
+        }
+        
+        this.handler = handler;
+        this.buffer = new byte[2048];
+        this.readerThread = new Thread(new Reader(this));
+        this.readerThread.start();
+        
+        return true;
+    }
+    
+    public void stop() {
+        if (this.readerThread != null) {
+            this.readerThread.stop();
+        }
+        
+        if (this.client != null) {
+            this.client.stop();
+        }
+    }
+    
+    public class Reader implements Runnable {
+        private AgentAsynRpc rpc;
+        
+        public Reader(AgentAsynRpc rpc) {
+            this.rpc = rpc;
+        }
+        
+        @Override
+        public void run() {
+            while (true) {
+                int length = client.recv(buffer);
+                IdFrame frame = AgentProtocol.parseIdFrame(buffer);
+                if (length > 0) {
+                    handler.handle(rpc, frame);
+                }
+            }
+        }
     }
     
     public void sendTo(int id, byte[] body, int offset, int length) {
@@ -87,5 +138,9 @@ public class AgentAsynRpc {
         SetIdRequest request = new SetIdRequest();
         request.setId(id);
         sendRequest(request);
+    }
+    
+    public AgentParser getParser() {
+        return parser;
     }
 }

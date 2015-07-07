@@ -1,9 +1,14 @@
 package cn.oasistech.agent.server;
 
+import java.net.InetSocketAddress;
+
 import cn.oasistech.agent.AgentContext;
 import cn.oasistech.agent.AgentParser;
+import cn.oasistech.util.Cfg;
+import cn.oasistech.util.ClassUtil;
 import cn.oasistech.util.Logger;
 import cn.oasistech.util.Server;
+import cn.oasistech.util.Address;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -14,7 +19,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 public class AgentNettyServer implements Server {
-    private int port;
+    private InetSocketAddress address;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private AgentContext<Channel> agentCtx;
@@ -22,16 +27,22 @@ public class AgentNettyServer implements Server {
     private AgentHandler<Channel> handler;
     private AgentParser parser;
     
-    public AgentNettyServer(AgentParser parser) {
-        this.parser = parser;
-    }
-    
-    public void start(int port) {
+    public boolean start(Address address) {
         if (workerGroup != null) {
-            logger.log("server is running on port %d", port);
+            logger.log("server is running on port %d", this.address.getPort());
+            return true;
         }
         
-        this.port = port;
+        this.parser = ClassUtil.newInstance(Cfg.getParserClassName());
+        if (this.parser == null) {
+            return false;
+        }
+        
+        this.address = address.toSocketAddress();
+        if (this.address == null) {
+            return false;
+        }
+        
         this.bossGroup = new NioEventLoopGroup();
         this.workerGroup = new NioEventLoopGroup();
         this.agentCtx = new AgentContext<Channel>();
@@ -48,13 +59,15 @@ public class AgentNettyServer implements Server {
                             }).option(ChannelOption.SO_BACKLOG, 128) 
                     .childOption(ChannelOption.SO_KEEPALIVE, true); 
 
-            b.bind(port).sync();
-            logger.log("agent server started on port %d", port);
+            b.bind(this.address).sync();
+            logger.log("agent server started on port %d", this.address.getPort());
+            return true;
         } catch (Exception e) {
             logger.log("start server error:", e);
             
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
+            return false;
         }
     }
     
@@ -70,8 +83,8 @@ public class AgentNettyServer implements Server {
         bossGroup = null;
         workerGroup = null;
         agentCtx = null;
-        port = 0;
+        this.address = null;
         
-        logger.log("server stoped on port %d", port);
+        logger.log("server stoped on port %d", this.address.getPort());
     }
 }

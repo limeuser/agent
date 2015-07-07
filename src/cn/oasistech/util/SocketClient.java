@@ -7,20 +7,25 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 
-public class SyncClient {
+// socket client reconnect server when disconnected
+public class SocketClient {
     private InetSocketAddress serverAddress;
     private Socket socket;
     private InputStream in;
     private OutputStream out;
     private final Logger logger = new Logger().addPrinter(System.out);
     
-    public boolean start(InetSocketAddress server) {
+    public boolean start(Address server) {
         if (socket != null) {
-            logger.log("started");
+            logger.log("socket client has connected server:%s", serverAddress.toString());
             return true;
         }
         
-        this.serverAddress = server;
+        this.serverAddress = server.toSocketAddress();
+        if (this.serverAddress == null) {
+            return false;
+        }
+        
         return connect();
     }
     
@@ -30,7 +35,7 @@ public class SyncClient {
     
     public boolean send(byte[] data) {
         if (socket == null) {
-            logger.log("disconnecting");
+            logger.log("socket client disconnected");
             return false;
         }
         
@@ -38,43 +43,27 @@ public class SyncClient {
             out.write(data);
             return true;
         } catch (SocketException e) {
-            logger.log("socket exception when sending, reconnect...", e);
+            logger.log("socket exception when sending, reconnect ...", e);
             reconnect();
             logger.log("reconnect success");
             return false;
         } catch (IOException e) {
-            logger.log("send exception:", e);
+            logger.log("send data exception:", e);
             return false;
         }
     }
-
-    public int recv(byte[] data) {
-        if (socket == null) {
-            logger.log("disconnecting");
-            return 0;
-        }
-        
+    
+    public int recv(byte[] buffer) {
         try {
-            return in.read(data);
+            return in.read(buffer);
         } catch (SocketException e) {
             logger.log("socket exception when receiving, reconnect...", e);
             reconnect();
+            logger.log("reconnect success");
             return 0;
         } catch (IOException e) {
-            logger.log("receive exception:", e);
+            logger.log("recv data exception", e);
             return 0;
-        }
-    }
-    
-    private void disconnect() {
-        try {
-            in.close();
-            out.close();
-            socket.close();
-        } catch (IOException e1) {
-            logger.log("close connection exception:", e1);
-        } finally {
-            socket = null;
         }
     }
     
@@ -88,12 +77,24 @@ public class SyncClient {
             this.socket.connect(serverAddress);
             this.in = socket.getInputStream();
             this.out = socket.getOutputStream();
-            logger.log("start sync client, connect server:%s", serverAddress.toString());
+            logger.log("socket client connect server:%s", serverAddress.toString());
             return true;
         } catch (IOException e) {
             this.socket = null;
-            logger.log("connect server exception:", e);
+            logger.log("socket client connect server exception:", e);
             return false;
+        }
+    }
+    
+    private void disconnect() {
+        try {
+            in.close();
+            out.close();
+            socket.close();
+        } catch (IOException e1) {
+            logger.log("close connection exception:", e1);
+        } finally {
+            socket = null;
         }
     }
     

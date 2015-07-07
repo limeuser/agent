@@ -35,7 +35,8 @@ public class AgentContext<Channel> {
         for (Peer<Channel> peer : idMap.values()) {
             boolean found = true;
             for (int i = 0; i < tags.size(); i++) {
-                if (!peer.getTags().get(tags.get(i).getKey()).equals(tags.get(i).getValue())) {
+                String value = peer.getTags().get(tags.get(i).getKey());
+                if (value == null || !value.equals(tags.get(i).getValue())) {
                     found = false;
                     break;
                 }
