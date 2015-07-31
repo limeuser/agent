@@ -1,6 +1,7 @@
 package cn.oasistech.util;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 public class Address {
     public enum Protocol {
@@ -36,8 +37,33 @@ public class Address {
         return null;
     }
     
+    public Protocol getProtocol() {
+        return this.protocol;
+    }
+    
+    public String getAddress() {
+        return this.address;
+    }
+    
+    public static final Address fromTcpSocketAddress(SocketAddress socketAddress) {
+        return new Address(Protocol.Tcp, socketAddress.toString());
+    }
+    
     @Override
     public String toString() {
         return protocol.name().toLowerCase() + "://" + address;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (obj != null && obj instanceof Address) {
+            Address addr = (Address) obj;
+            if (addr.getProtocol().equals(this.protocol) &&
+                addr.getAddress().equals(this.address)) {
+                return true;
+            }
+            return false;
+        }
+        return false;
     }
 }

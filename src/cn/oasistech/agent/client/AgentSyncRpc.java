@@ -25,12 +25,12 @@ public class AgentSyncRpc {
         }
         
         this.client = new SocketClient();
-        return client.start(address);
+        return client.connect(address);
     }
     
     public void stop() {
         if (this.client != null) {
-            this.client.stop();
+            this.client.disconnect();
         }
     }
     

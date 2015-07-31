@@ -20,14 +20,14 @@ public class AgentAsynRpc {
     private Thread readerThread;
     private final static Logger logger = new Logger().addPrinter(System.out);
     
-    public boolean start(Address address, AgentRpcHandler handler) {
+    public boolean start(Address serverAddress, AgentRpcHandler handler) {
         this.parser = ClassUtil.newInstance(Cfg.getParserClassName());
         if (parser == null) {
             return false;
         }
         
         this.client = new SocketClient();
-        boolean success = this.client.start(address);
+        boolean success = this.client.connect(serverAddress);
         if (success == false) {
             this.client = null;
             return false;
@@ -47,7 +47,7 @@ public class AgentAsynRpc {
         }
         
         if (this.client != null) {
-            this.client.stop();
+            this.client.disconnect();
         }
     }
     

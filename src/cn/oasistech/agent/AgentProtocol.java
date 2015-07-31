@@ -33,6 +33,12 @@ public class AgentProtocol {
         name,
         port,
         publickey, // 公钥
+        clienttype, // 同步异步
+    }
+    
+    public enum ClientType {
+        asyn,
+        sync;
     }
 
     public enum PublicService {

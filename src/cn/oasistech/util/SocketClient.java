@@ -15,7 +15,7 @@ public class SocketClient {
     private OutputStream out;
     private final Logger logger = new Logger().addPrinter(System.out);
     
-    public boolean start(Address server) {
+    public boolean connect(Address server) {
         if (socket != null) {
             logger.log("socket client has connected server:%s", serverAddress.toString());
             return true;
@@ -29,8 +29,9 @@ public class SocketClient {
         return connect();
     }
     
-    public void stop() {
+    public boolean reconnect(Address server) {
         disconnect();
+        return connect(server);
     }
     
     public boolean send(byte[] data) {
@@ -86,7 +87,11 @@ public class SocketClient {
         }
     }
     
-    private void disconnect() {
+    public void disconnect() {
+        if (socket == null) {
+            return;
+        }
+        
         try {
             in.close();
             out.close();
