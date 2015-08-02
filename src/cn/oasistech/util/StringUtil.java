@@ -23,4 +23,15 @@ public class StringUtil {
     public static String getUTF8String(byte[] bytes) {
         return getString(bytes, "UTF-8");
     }
+    
+    public static boolean isEmpty(String str) {
+    	if (str == null || str.isEmpty()) {
+    		return true;
+    	}
+    	return false;
+    }
+    
+    public static boolean isNotEmpty(String str) {
+    	return !isEmpty(str); 
+    }
 }

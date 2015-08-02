@@ -18,6 +18,7 @@ public class AgentAsynRpc {
     private AgentRpcHandler handler;
     private byte[] buffer;
     private Thread readerThread;
+    private boolean readingData;
     private final static Logger logger = new Logger().addPrinter(System.out);
     
     public boolean start(Address serverAddress, AgentRpcHandler handler) {
@@ -35,16 +36,16 @@ public class AgentAsynRpc {
         
         this.handler = handler;
         this.buffer = new byte[2048];
+        
         this.readerThread = new Thread(new Reader(this));
+        this.readingData = true;
         this.readerThread.start();
         
         return true;
     }
     
     public void stop() {
-        if (this.readerThread != null) {
-            this.readerThread.stop();
-        }
+        this.readingData = false;
         
         if (this.client != null) {
             this.client.disconnect();
@@ -60,7 +61,7 @@ public class AgentAsynRpc {
         
         @Override
         public void run() {
-            while (true) {
+            while (readingData) {
                 int length = client.recv(buffer);
                 IdFrame frame = AgentProtocol.parseIdFrame(buffer);
                 if (length > 0) {
@@ -128,6 +129,12 @@ public class AgentAsynRpc {
         GetIdRequest request = new GetIdRequest();
         request.setTags(tags);
         sendRequest(request);
+    }
+    
+    public void getIdTag(List<Tag> tags) {
+    	GetIdTagRequest request = new GetIdTagRequest();
+    	request.setTags(tags);
+    	sendRequest(request);
     }
     
     public void getMyId() {

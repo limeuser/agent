@@ -1,11 +1,13 @@
 package cn.oasistech.agent.server;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
 import cn.oasistech.agent.*;
 import cn.oasistech.util.Logger;
+import cn.oasistech.util.StringUtil;
 import cn.oasistech.util.Tag;
 
 public class AgentHandler<Channel> {
@@ -38,6 +40,8 @@ public class AgentHandler<Channel> {
             response = setTag(peer, (SetTagRequest)request);
         }else if (request instanceof GetTagRequest) {
             response = getTag((GetTagRequest)request);
+        }else if (request instanceof GetIdTagRequest) {
+        	response = getIdTag((GetIdTagRequest)request);
         }
         
         logger.log("recv request:%s", request.toString());
@@ -73,7 +77,7 @@ public class AgentHandler<Channel> {
         GetIdResponse response = new GetIdResponse();
         for (Peer<Channel> p : agentCtx.getPeerByTag(request.getTags())) {
             response.getIds().add(p.getId());
-        }   
+        }
         return response;
     }
     
@@ -98,40 +102,69 @@ public class AgentHandler<Channel> {
         // 如果id是无效id，获取所有连接的tag
         if (request.getIdKeys().size() == 1 && request.getIdKeys().get(0).getId() == AgentProtocol.InvalidId) {
             IdKey idKey = request.getIdKeys().get(0);
-            for (Peer<Channel> thePeer : agentCtx.getChannelMap().values()) {
-                getTag(thePeer, idKey, response.getIdTags());
+            for (Peer<Channel> peer : agentCtx.getChannelMap().values()) {
+                addIdTag(response.getIdTags(), peer, idKey.getKeys());
             }
         } else {
             for (IdKey idKey : request.getIdKeys()) {
                 Peer<Channel> peer = agentCtx.getIdMap().get(idKey.getId());
                 if (peer != null) {
-                    getTag(peer, idKey, response.getIdTags());
+                	addIdTag(response.getIdTags(), peer, idKey.getKeys());
                 }
             }
         }
         return response;
     }
     
-    private void getTag(Peer<Channel> peer, IdKey idKey, List<IdTag> idTags) {
-        IdTag idTag = new IdTag();
+    private void addIdTag(List<IdTag> idTags, Peer<Channel> peer, List<String> keys) {
+    	IdTag idTag = new IdTag();
         idTag.setId(peer.getId());
+        idTag.setTags(getTags(peer, keys));
+        if (idTag.getTags().isEmpty() == false) {
+        	idTags.add(idTag);
+        }
+    }
+    
+    private List<Tag> getTags(Peer<Channel> peer, List<String> keys) {
+        List<Tag> tags = new ArrayList<Tag>();
+        
         // 如果没有指定key，获取所有tag
-        if (idKey.getKeys().isEmpty()) {
+        if (keys.isEmpty()) {
             for (Entry<String, String> tag : peer.getTags().entrySet()) {
-                idTag.getTags().add(new Tag(tag.getKey(), tag.getValue()));
+                tags.add(new Tag(tag.getKey(), tag.getValue()));
             }
         } else {
-            for (String key : idKey.getKeys()) {
+            for (String key : keys) {
                 if (peer.getTags().containsKey(key)) {
                     Tag tag = new Tag(key, peer.getTags().get(key));
-                    idTag.getTags().add(tag);
+                    tags.add(tag);
                 }
             }
         }
         
-        if (idTag.getTags().isEmpty() == false) {
-            idTags.add(idTag);
-        }
+        return tags;
+    }
+    
+    private GetIdTagResponse getIdTag(GetIdTagRequest request) {
+    	GetIdTagResponse response = new GetIdTagResponse();
+    	
+    	// firstly, get id by tags which is not empty
+    	List<Tag> tags = new ArrayList<Tag>();
+    	List<String> keys = new ArrayList<String>();
+    	for (Tag tag : request.getTags()) {
+    		if (StringUtil.isNotEmpty(tag.getValue())) {
+    			tags.add(tag);
+    		}
+    		
+    		keys.add(tag.getKey());
+    	}
+    	
+    	// secondly, fill all tags 
+    	for (Peer<Channel> peer : agentCtx.getPeerByTag(tags)) {
+    		addIdTag(response.getIdTags(), peer, keys);
+    	}
+    	
+    	return response;
     }
     
     public AgentParser getAgentParser() {

@@ -75,6 +75,12 @@ public class AgentSyncRpc {
         return (GetIdResponse) process(request);
     }
     
+    public GetIdTagResponse getIdTag(List<Tag> tags) {
+    	GetIdTagRequest request = new GetIdTagRequest();
+    	request.setTags(tags);
+    	return (GetIdTagResponse) process(request);
+    }
+    
     public GetMyIdResponse getMyId() {
         GetMyIdRequest request = new GetMyIdRequest();
         return (GetMyIdResponse) process(request);

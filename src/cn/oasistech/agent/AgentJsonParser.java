@@ -44,6 +44,9 @@ public class AgentJsonParser implements AgentParser {
             else if (type.equalsIgnoreCase(AgentProtocol.MsgType.GetId.name())) {
                 return mapper.readValue(buffer, GetIdRequest.class);
             } 
+            else if (type.equalsIgnoreCase(AgentProtocol.MsgType.GetIdTag.name())) {
+                return mapper.readValue(buffer, GetIdTagRequest.class);
+            } 
             else if (type.equalsIgnoreCase(AgentProtocol.MsgType.SetId.name())) {
                 return mapper.readValue(buffer, SetIdRequest.class);
             }
@@ -70,6 +73,9 @@ public class AgentJsonParser implements AgentParser {
             }
             else if (type.equalsIgnoreCase(AgentProtocol.MsgType.GetId.name())) {
                 return mapper.readValue(buffer, GetIdResponse.class);
+            }
+            else if (type.equalsIgnoreCase(AgentProtocol.MsgType.GetIdTag.name())) {
+                return mapper.readValue(buffer, GetIdTagResponse.class);
             }
             else if (type.equalsIgnoreCase(AgentProtocol.MsgType.SetId.name())) {
                 return mapper.readValue(buffer, SetIdResponse.class);

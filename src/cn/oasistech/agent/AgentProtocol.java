@@ -12,6 +12,7 @@ public class AgentProtocol {
         SetTag,
         GetTag,
         GetId,
+        GetIdTag,
         GetMyId,
         SetId,;
     }
