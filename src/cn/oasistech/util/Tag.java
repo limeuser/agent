@@ -1,5 +1,9 @@
 package cn.oasistech.util;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collection;
+
 public class Tag {
     private String key;
     private String value;
@@ -25,6 +29,14 @@ public class Tag {
     }
     public void setValue(String value) {
         this.value = value;
+    }
+    
+    public static final Map<String, String> toMap(Collection<Tag> tags) {
+        Map<String, String> map = new HashMap<String, String>();
+        for (Tag tag : tags) {
+            map.put(tag.getKey(), tag.getValue());
+        }
+        return map;
     }
     
     @Override

@@ -5,9 +5,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import cn.oasistech.util.Logger;
+import mjoys.util.Logger;
 
-public class AgentBinaryParser implements AgentParser {
+public class AgentBinaryMsgSerializer extends AgentMsgSerializer {
     private Logger logger = new Logger().addPrinter(System.out);
     
     @Override
@@ -37,9 +37,9 @@ public class AgentBinaryParser implements AgentParser {
     }
 
     @Override
-    public Request decodeRequest(byte[] buffer) {
+    public Request decodeRequest(byte[] buffer, int offset, int length) {
         try {
-            ByteArrayInputStream in = new ByteArrayInputStream(buffer);
+            ByteArrayInputStream in = new ByteArrayInputStream(buffer, offset, length);
             ObjectInputStream objOut = new ObjectInputStream(in);
             Object request = objOut.readObject();
             return (Request)request;
@@ -50,9 +50,9 @@ public class AgentBinaryParser implements AgentParser {
     }
 
     @Override
-    public Response decodeResponse(byte[] buffer) {
+    public Response decodeResponse(byte[] buffer, int offset, int length) {
         try {
-            ByteArrayInputStream in = new ByteArrayInputStream(buffer);
+            ByteArrayInputStream in = new ByteArrayInputStream(buffer, offset, length);
             ObjectInputStream objOut = new ObjectInputStream(in);
             Object request = objOut.readObject();
             return (Response)request;

@@ -1,10 +1,13 @@
 package cn.oasistech.agent;
 
-import cn.oasistech.util.Logger;
+import java.io.ByteArrayInputStream;
+
+import mjoys.util.Logger;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class AgentJsonParser implements AgentParser {
+public class AgentJsonMsgSerializer extends AgentMsgSerializer {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Logger logger = new Logger().addPrinter(System.out);
     
@@ -29,10 +32,10 @@ public class AgentJsonParser implements AgentParser {
     }
 
     @Override
-    public Request decodeRequest(byte[] buffer) {
+    public Request decodeRequest(byte[] buffer, int offset, int length) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(buffer);
+            JsonNode root = mapper.readTree(new ByteArrayInputStream(buffer, offset, length));
             String type = root.path("type").asText();
             
             if (type.equalsIgnoreCase(AgentProtocol.MsgType.SetTag.name())) {
@@ -60,10 +63,10 @@ public class AgentJsonParser implements AgentParser {
     }
 
     @Override
-    public Response decodeResponse(byte[] buffer) {
+    public Response decodeResponse(byte[] buffer, int offset, int length) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(buffer);
+            JsonNode root = mapper.readTree(new ByteArrayInputStream(buffer, offset, length));
             String type = root.path("type").asText();
             if (type.equalsIgnoreCase(AgentProtocol.MsgType.SetTag.name())) {
                 return mapper.readValue(buffer, SetTagResponse.class);

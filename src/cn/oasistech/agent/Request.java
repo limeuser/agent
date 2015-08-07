@@ -1,26 +1,26 @@
 package cn.oasistech.agent;
 
 public class Request {
-    protected String type;
+    protected AgentProtocol.MsgType type;
 
     public Request() {
         
     }
     
     public Request(AgentProtocol.MsgType type) {
-        this.type = type.name();
+        this.type = type;
     }
     
-    public String getType() {
+    public AgentProtocol.MsgType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(AgentProtocol.MsgType type) {
         this.type = type;
     }
     
     @Override
     public String toString() {
-        return type;
+        return type.name();
     }
 }

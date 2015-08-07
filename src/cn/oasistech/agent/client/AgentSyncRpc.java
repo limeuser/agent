@@ -4,17 +4,17 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import mjoys.socket.tcp.client.SocketClient;
+import mjoys.util.Address;
+import mjoys.util.ClassUtil;
+import mjoys.util.Logger;
 import cn.oasistech.agent.*;
-import cn.oasistech.util.Address;
 import cn.oasistech.util.Cfg;
-import cn.oasistech.util.ClassUtil;
-import cn.oasistech.util.Logger;
-import cn.oasistech.util.SocketClient;
 import cn.oasistech.util.Tag;
 
 public class AgentSyncRpc {
     private SocketClient client;
-    private AgentParser parser;
+    private AgentMsgSerializer parser;
     private byte[] recvBuffer = new byte[2048];
     private final static Logger logger = new Logger().addPrinter(System.out);
     

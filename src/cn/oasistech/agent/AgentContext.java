@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import cn.oasistech.util.IdGenerator;
+import mjoys.util.IdGenerator;
 import cn.oasistech.util.Tag;
 
 public class AgentContext<Channel> {
     private IdGenerator idGenerator;
-    private HashMap<Channel, Peer<Channel>> channelMap;
     private HashMap<Integer, Peer<Channel>> idMap;
+    private HashMap<Channel, Peer<Channel>> channelMap;
     
     public AgentContext() {
         idGenerator = new IdGenerator(1);
@@ -47,5 +47,15 @@ public class AgentContext<Channel> {
         }
         
         return peers;
+    }
+    
+    public List<Peer<Channel>> getListeners(Peer<Channel> listened) {
+        List<Peer<Channel>> listeningPeers = new ArrayList<Peer<Channel>>();
+        for (Peer<Channel> p : getIdMap().values()) {
+            if (p.isListening(listened.getTags())) {
+                listeningPeers.add(p);
+            }
+        }
+        return listeningPeers;
     }
 }

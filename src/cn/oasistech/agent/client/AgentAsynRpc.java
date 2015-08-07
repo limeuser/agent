@@ -4,17 +4,17 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import mjoys.socket.tcp.client.SocketClient;
+import mjoys.util.Address;
+import mjoys.util.ClassUtil;
+import mjoys.util.Logger;
 import cn.oasistech.agent.*;
-import cn.oasistech.util.Address;
-import cn.oasistech.util.SocketClient;
 import cn.oasistech.util.Cfg;
-import cn.oasistech.util.ClassUtil;
-import cn.oasistech.util.Logger;
 import cn.oasistech.util.Tag;
 
 public class AgentAsynRpc {
     private SocketClient client;
-    private AgentParser parser;
+    private AgentMsgSerializer serializer;
     private AgentRpcHandler handler;
     private byte[] buffer;
     private Thread readerThread;
@@ -22,8 +22,8 @@ public class AgentAsynRpc {
     private final static Logger logger = new Logger().addPrinter(System.out);
     
     public boolean start(Address serverAddress, AgentRpcHandler handler) {
-        this.parser = ClassUtil.newInstance(Cfg.getParserClassName());
-        if (parser == null) {
+        this.serializer = ClassUtil.newInstance(Cfg.getParserClassName());
+        if (serializer == null) {
             return false;
         }
         
@@ -87,7 +87,7 @@ public class AgentAsynRpc {
     
     public void sendRequest(Request request) {
         logger.log("asyn rpc send request:%s", request.toString());
-        sendToAgent(parser.encodeRequest(request));
+        sendToAgent(serializer.encodeRequest(request));
     }
     
     public void setTag(Tag tag) {
@@ -147,7 +147,13 @@ public class AgentAsynRpc {
         sendRequest(request);
     }
     
-    public AgentParser getParser() {
-        return parser;
+    public void listenConnection(List<Tag> tags) {
+        ListenConnectionRequest request = new ListenConnectionRequest();
+        request.setTags(tags);
+        sendRequest(request);
+    }
+    
+    public AgentMsgSerializer getSerializer() {
+        return serializer;
     }
 }

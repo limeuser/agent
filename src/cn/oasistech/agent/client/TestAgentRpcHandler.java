@@ -1,19 +1,19 @@
 package cn.oasistech.agent.client;
 
-import cn.oasistech.agent.AgentParser;
+import mjoys.util.Logger;
+import cn.oasistech.agent.AgentMsgSerializer;
 import cn.oasistech.agent.AgentProtocol;
 import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.Response;
 import cn.oasistech.util.Cfg;
-import cn.oasistech.util.Logger;
 
 public class TestAgentRpcHandler implements AgentRpcHandler {
-    private AgentParser parser;
+    private AgentMsgSerializer parser;
     private final static Logger logger = new Logger().addPrinter(System.out);
     
     public TestAgentRpcHandler() {
         try {
-            this.parser = (AgentParser)Class.forName(Cfg.getParserClassName()).newInstance();
+            this.parser = (AgentMsgSerializer)Class.forName(Cfg.getParserClassName()).newInstance();
         } catch (Exception e) {
             logger.log("can't create parser class:", e);
         }

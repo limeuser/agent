@@ -1,6 +1,6 @@
 package cn.oasistech.agent;
 
-import cn.oasistech.util.Formater;
+import mjoys.util.Formater;
 
 
 public class SetIdRequest extends Request {

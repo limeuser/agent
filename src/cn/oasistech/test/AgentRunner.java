@@ -1,13 +1,14 @@
-package cn.oasistech.runner;
+package cn.oasistech.test;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import mjoys.util.Address;
+import mjoys.util.NumberUtil;
+import mjoys.util.StringUtil;
 import cn.oasistech.agent.AgentProtocol;
 import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.IdKey;
@@ -15,30 +16,20 @@ import cn.oasistech.agent.client.AgentAsynRpc;
 import cn.oasistech.agent.client.AgentRpcHandler;
 import cn.oasistech.agent.client.AgentSyncRpc;
 import cn.oasistech.agent.server.AgentNettyServer;
-import cn.oasistech.service.AgentService;
-import cn.oasistech.service.Echo;
-import cn.oasistech.service.Shell;
-import cn.oasistech.service.Text;
-import cn.oasistech.util.Address;
 import cn.oasistech.util.Cfg;
-import cn.oasistech.util.NumberUtil;
-import cn.oasistech.util.Server;
-import cn.oasistech.util.StringUtil;
 import cn.oasistech.util.Tag;
 
 public class AgentRunner {
-    private static Server agentServer;
+    private static AgentNettyServer agentServer;
     private static Address agentAddress;
     private static AgentSyncRpc agentSyncRpc;
     private static AgentAsynRpc agentAsynRpc;
-    private static Map<String, AgentService> services;
     
     public static void main(String[] args) throws IOException {
         agentAddress = Address.parse(Cfg.getServerAddress());
         agentServer = new AgentNettyServer();
         agentSyncRpc = new AgentSyncRpc();
         agentAsynRpc = new AgentAsynRpc();
-        services = new HashMap<String, AgentService>();
 
         processUserCommand();
     }
@@ -70,16 +61,10 @@ public class AgentRunner {
             if (action.equals("start")) {
                 if (object.equals("server")) {
                     agentServer.start(agentAddress);
-                } else if (object.equals("client")) {
+                }
+                else if (object.equals("client")) {
                     agentSyncRpc.start(agentAddress);
                     agentAsynRpc.start(agentAddress, new LogHandler());
-                } else if (object.equals("service")) {
-                    if (tokens.length != 3) {
-                        echo("bad command");
-                        continue;
-                    }
-                    String service = tokens[2];
-                    addService(service);
                 }
             } else if (action.equals("stop")) {
                 if (object.equals("server")) {
@@ -87,13 +72,6 @@ public class AgentRunner {
                 } else if (object.equals("client")) {
                     agentSyncRpc.stop();
                     agentAsynRpc.stop();
-                } else if (object.equals("service")) {
-                    if (tokens.length != 3) {
-                        echo("bad command");
-                        continue;
-                    }
-                    String service = tokens[2];
-                    removeService(service);
                 }
             } 
             // get tag id1 id2 id3 key1 key2 ...
@@ -186,32 +164,6 @@ public class AgentRunner {
         @Override
         public void handle(AgentAsynRpc rpc, IdFrame idFrame) {
             System.out.println("recv message from " + idFrame.getId() + ": " + StringUtil.getUTF8String(idFrame.getBody()));
-        }
-    }
-    
-    private static void addService(String service) {
-        if (service.equals("echo")) {
-            addService(service, new Echo());
-        } else if (service.equals("shell")) {
-            addService(service, new Shell());
-        } else if (service.equals("text")) {
-            addService(service, new Text());
-        }
-    }
-    
-    private static void addService(String name, AgentService service) {
-        if (services.get(name) == null) {
-            if (service.start(agentAddress)) {
-                services.put(name, service);
-            }
-        }
-    }
-    
-    private static void removeService(String name) {
-        AgentService service = services.get(name);
-        if (service != null) {
-            service.stop();
-            services.remove(name);
         }
     }
 }

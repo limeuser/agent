@@ -3,7 +3,7 @@ package cn.oasistech.agent;
 import java.util.ArrayList;
 import java.util.List;
 
-import cn.oasistech.util.Formater;
+import mjoys.util.Formater;
 import cn.oasistech.util.Tag;
 
 public class IdTag {

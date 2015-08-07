@@ -3,7 +3,7 @@ package cn.oasistech.agent;
 import java.util.ArrayList;
 import java.util.List;
 
-import cn.oasistech.util.Formater;
+import mjoys.util.Formater;
 
 public class GetTagResponse extends Response {
     private List<IdTag> idTags;

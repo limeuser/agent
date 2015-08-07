@@ -14,7 +14,9 @@ public class AgentProtocol {
         GetId,
         GetIdTag,
         GetMyId,
-        SetId,;
+        SetId,
+        ListenConnection,
+        NotifyConnection;
     }
     
     public enum Error {
@@ -57,13 +59,7 @@ public class AgentProtocol {
             this.name = name;
         }
     }
-    
-    public static class Response {
-        public int id;
-        public int length;
-        public byte[] body;
-    }
-    
+        
     public static int writeHead(ByteArrayOutputStream buf, int id, int length) {
         return writeInt32(buf, id) + writeInt32(buf, length);
     }

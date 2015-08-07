@@ -7,24 +7,28 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 
-import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
+import java.util.List;
 
+import mjoys.util.Logger;
 import cn.oasistech.agent.AgentContext;
+import cn.oasistech.agent.AgentMsgSerializer;
 import cn.oasistech.agent.AgentProtocol;
 import cn.oasistech.agent.IdFrame;
+import cn.oasistech.agent.NotifyConnectionResponse;
 import cn.oasistech.agent.Peer;
+import cn.oasistech.agent.Request;
 import cn.oasistech.agent.Response;
-import cn.oasistech.util.Logger;
 
 public class IdFrameHandler extends ChannelInboundHandlerAdapter {
-    private AgentContext<Channel> agentCtx;
+    private AgentMsgSerializer parser;
     private AgentHandler<Channel> handler;
+    private AgentContext<Channel> agentCtx;
     private Logger logger = new Logger().addPrinter(System.out);
     
-    public IdFrameHandler(AgentContext<Channel> agentCtx, AgentHandler<Channel> handler) {
-        this.agentCtx = agentCtx;
+    public IdFrameHandler(AgentContext<Channel> agentCtx, AgentHandler<Channel> handler, AgentMsgSerializer parser) {
         this.handler = handler;
+        this.agentCtx = agentCtx;
     }
     
     @Override
@@ -51,7 +55,6 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         try {
             Peer<Channel> peer = agentCtx.getChannelMap().get(ctx.channel());
     
-            // a new peer connected
             if (peer == null) {
                 peer = addNewPeer(ctx.channel());
                 logger.log("add new peer when channelRead:%s", peer.toString());
@@ -59,12 +62,7 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
 
             IdFrame idFrame = (IdFrame) msg;
             if (idFrame.getId() == AgentProtocol.PublicService.Agent.id) {
-                byte[] response = handler.processRequest(peer, idFrame.getBody());
-                ByteBuf writeBuffer = Unpooled.buffer();
-                writeBuffer.writeInt(idFrame.getId());
-                writeBuffer.writeInt(response.length);
-                writeBuffer.writeBytes(response);
-                ctx.channel().writeAndFlush(writeBuffer);
+                processRequest(peer, idFrame);
             } else {
                 route(peer, idFrame);
             }
@@ -73,18 +71,59 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         }
     }
     
-    private void setPublicTag(Peer<Channel> peer) {
-        InetSocketAddress address = (InetSocketAddress) peer.getChannel().remoteAddress();
-        peer.getTags().put(AgentProtocol.PublicTag.id.name(), String.valueOf(peer.getId()));
-        peer.getTags().put(AgentProtocol.PublicTag.address.name(), address.getAddress().getHostAddress());
-        peer.getTags().put(AgentProtocol.PublicTag.name.name(), address.getAddress().getHostName());
-        peer.getTags().put(AgentProtocol.PublicTag.port.name(), String.valueOf(address.getPort()));
+    private void processRequest(Peer<Channel> peer, IdFrame idFrame) {
+        Request request = parser.decodeRequest(idFrame.getBody());
+        if (request == null) {
+            logger.log("request is null");
+            sendError(peer.getChannel(), AgentProtocol.MsgType.Unknown, AgentProtocol.Error.BadMessageFormat);
+            return;
+        }
         
-        logger.log("new peer: id=%d, name=%s, address=%s, port=%d", 
-                peer.getId(), 
-                address.getAddress().getHostName(), 
-                address.getAddress().getHostAddress(), 
-                address.getPort());
+        List<Peer<Channel>> listenersBefore = null;
+        if (request.getType().equals(AgentProtocol.MsgType.SetTag)) {
+            listenersBefore = agentCtx.getListeners(peer);
+        }
+        
+        Response response = handler.processRequest(peer, request);
+        if (response == null) {
+            sendError(peer.getChannel(), AgentProtocol.MsgType.Unknown, AgentProtocol.Error.InvalidRequest);
+            return;
+        }
+        
+        byte[] data = parser.encodeResponse(response);
+        sendData(peer.getChannel(), AgentProtocol.PublicService.Agent.id, data, data.length);
+        
+        // notify connection changed
+        List<Peer<Channel>> listenersAfter = null;
+        if (request.getType().equals(AgentProtocol.MsgType.SetTag.name())) {
+            listenersAfter = agentCtx.getListeners(peer);
+            
+            for (Peer<Channel> oldListener : listenersBefore) {
+                boolean has = false;
+                for (Peer<Channel> newListener : listenersAfter) {
+                    if (newListener == oldListener) {
+                        has = true;
+                        break;
+                    }
+                }
+                if (!has) {
+                    notifyConnection(peer, NotifyConnectionResponse.Action.disconnect);
+                }
+            }
+            
+            for (Peer<Channel> newListener : listenersAfter) {
+                boolean has = false;
+                for (Peer<Channel> oldListener : listenersBefore) {
+                    if (newListener == oldListener) {
+                        has = true;
+                        break;
+                    }
+                }
+                if (!has) {
+                    notifyConnection(peer, NotifyConnectionResponse.Action.connect);
+                }
+            }
+        }
     }
 
     private void route(Peer<Channel> srcHost, IdFrame idFrame) {
@@ -99,21 +138,8 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        ByteBuf writeBuffer = Unpooled.buffer();
-        writeBuffer.writeInt(srcId);
-        writeBuffer.writeInt(idFrame.getBodyLength());
-        writeBuffer.writeBytes(idFrame.getBody());
-        dstHost.getChannel().writeAndFlush(writeBuffer);
+        sendData(dstHost.getChannel(), srcId, idFrame.getBody(), idFrame.getBodyLength());
         logger.log("route a message from %s to %s", srcHost.toString(), dstHost.toString());
-    }
-
-    private void sendError(Channel channel, AgentProtocol.MsgType type, AgentProtocol.Error error) {
-        Response response = new Response();
-        response.setType(type.name());
-        response.setError(error.name());
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        AgentProtocol.write(buffer, handler.getAgentParser().encodeResponse(response));
-        channel.writeAndFlush(buffer.toByteArray());
     }
     
     @Override
@@ -141,11 +167,56 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         setPublicTag(peer);
         agentCtx.getChannelMap().put(channel, peer);
         agentCtx.getIdMap().put(id, peer);
+        
+        notifyConnection(peer, NotifyConnectionResponse.Action.connect);
+        
         return peer;
     }
     
     private void removeDisconnectedPeer(Peer<Channel> peer) {
         agentCtx.getIdMap().remove(peer.getId());
         agentCtx.getChannelMap().remove(peer.getChannel());
+        
+        notifyConnection(peer, NotifyConnectionResponse.Action.disconnect);
+    }
+    
+    private void setPublicTag(Peer<Channel> peer) {
+        InetSocketAddress address = (InetSocketAddress) peer.getChannel().remoteAddress();
+        peer.getTags().put(AgentProtocol.PublicTag.id.name(), String.valueOf(peer.getId()));
+        peer.getTags().put(AgentProtocol.PublicTag.address.name(), address.getAddress().getHostAddress());
+        peer.getTags().put(AgentProtocol.PublicTag.name.name(), address.getAddress().getHostName());
+        peer.getTags().put(AgentProtocol.PublicTag.port.name(), String.valueOf(address.getPort()));
+        
+        logger.log("new peer: id=%d, name=%s, address=%s, port=%d", 
+                peer.getId(), 
+                address.getAddress().getHostName(), 
+                address.getAddress().getHostAddress(), 
+                address.getPort());
+    }
+    
+    private void notifyConnection(Peer<Channel> connectionPeer, NotifyConnectionResponse.Action action) {
+        for (Peer<Channel> peer : agentCtx.getIdMap().values()) {
+            Response response = this.handler.getNotifyConnectionResponse(peer, connectionPeer, action);
+            if (response != null) {
+                byte[] data = parser.encodeResponse(response);
+                sendData(peer.getChannel(), AgentProtocol.PublicService.Agent.id, data, data.length);
+            }
+        }
+    }
+    
+    private void sendError(Channel channel, AgentProtocol.MsgType type, AgentProtocol.Error error) {
+        Response response = new Response();
+        response.setType(type);
+        response.setError(error);
+        byte[] data = parser.encodeResponse(response);
+        sendData(channel, AgentProtocol.PublicService.Agent.id, data, data.length);
+    }
+    
+    public final static void sendData(Channel channel, int id, byte[] data, int dataLength) {
+        ByteBuf writeBuffer = Unpooled.buffer();
+        writeBuffer.writeInt(id);
+        writeBuffer.writeInt(data.length);
+        writeBuffer.writeBytes(data, 0, dataLength);
+        channel.writeAndFlush(writeBuffer);
     }
 }

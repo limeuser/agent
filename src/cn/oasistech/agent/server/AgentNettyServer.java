@@ -2,13 +2,13 @@ package cn.oasistech.agent.server;
 
 import java.net.InetSocketAddress;
 
+import mjoys.util.Address;
+import mjoys.util.ClassUtil;
+import mjoys.util.Logger;
 import cn.oasistech.agent.AgentContext;
-import cn.oasistech.agent.AgentParser;
+import cn.oasistech.agent.AgentMsgSerializer;
 import cn.oasistech.util.Cfg;
-import cn.oasistech.util.ClassUtil;
-import cn.oasistech.util.Logger;
 import cn.oasistech.util.Server;
-import cn.oasistech.util.Address;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -25,7 +25,7 @@ public class AgentNettyServer implements Server {
     private AgentContext<Channel> agentCtx;
     private Logger logger = new Logger().addPrinter(System.out);
     private AgentHandler<Channel> handler;
-    private AgentParser parser;
+    private AgentMsgSerializer parser;
     
     public boolean start(Address address) {
         if (workerGroup != null) {
@@ -46,7 +46,7 @@ public class AgentNettyServer implements Server {
         this.bossGroup = new NioEventLoopGroup();
         this.workerGroup = new NioEventLoopGroup();
         this.agentCtx = new AgentContext<Channel>();
-        this.handler = new AgentHandler<Channel>(agentCtx, parser);
+        this.handler = new AgentHandler<Channel>(agentCtx);
         
         try {
             ServerBootstrap b = new ServerBootstrap(); 
@@ -54,7 +54,7 @@ public class AgentNettyServer implements Server {
                     .childHandler(new ChannelInitializer<SocketChannel>() { 
                                 @Override
                                 public void initChannel(SocketChannel ch) throws Exception {
-                                    ch.pipeline().addLast(new IdFrameDecoder(), new IdFrameHandler(agentCtx, handler));
+                                    ch.pipeline().addLast(new IdFrameDecoder(), new IdFrameHandler(agentCtx, handler, parser));
                                 }
                             }).option(ChannelOption.SO_BACKLOG, 128) 
                     .childOption(ChannelOption.SO_KEEPALIVE, true); 

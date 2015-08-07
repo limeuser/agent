@@ -1,35 +1,35 @@
 package cn.oasistech.agent;
 
-import cn.oasistech.util.Formater;
+import mjoys.util.Formater;
 
 public class Response {
-    protected String type;
-    protected String error;
+    protected AgentProtocol.MsgType type;
+    protected AgentProtocol.Error error;
     
     public Response() {
         
     }
     
     public Response(AgentProtocol.MsgType type, AgentProtocol.Error error) {
-        this.type = type.name();
-        this.error = error.name();
+        this.type = type;
+        this.error = error;
     }
     
-    public String getType() {
+    public AgentProtocol.MsgType getType() {
         return type;
     }
-    public void setType(String type) {
+    public void setType(AgentProtocol.MsgType type) {
         this.type = type;
     }
-    public String getError() {
+    public AgentProtocol.Error getError() {
         return error;
     }
-    public void setError(String error) {
+    public void setError(AgentProtocol.Error error) {
         this.error = error;
     }
     
     @Override
     public String toString() {
-        return Formater.formatEntries("type", type, "error", error);
+        return Formater.formatEntries("type", type.name(), "error", error.name());
     }
 }

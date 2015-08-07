@@ -1,35 +1,48 @@
 package cn.oasistech.agent.server;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
-import cn.oasistech.agent.*;
-import cn.oasistech.util.Logger;
-import cn.oasistech.util.StringUtil;
+import mjoys.util.Logger;
+import mjoys.util.StringUtil;
+import cn.oasistech.agent.AgentContext;
+import cn.oasistech.agent.AgentProtocol;
+import cn.oasistech.agent.GetIdRequest;
+import cn.oasistech.agent.GetIdResponse;
+import cn.oasistech.agent.GetIdTagRequest;
+import cn.oasistech.agent.GetIdTagResponse;
+import cn.oasistech.agent.GetMyIdRequest;
+import cn.oasistech.agent.GetMyIdResponse;
+import cn.oasistech.agent.GetTagRequest;
+import cn.oasistech.agent.GetTagResponse;
+import cn.oasistech.agent.IdKey;
+import cn.oasistech.agent.IdTag;
+import cn.oasistech.agent.ListenConnectionRequest;
+import cn.oasistech.agent.ListenConnectionResponse;
+import cn.oasistech.agent.NotifyConnectionResponse;
+import cn.oasistech.agent.Peer;
+import cn.oasistech.agent.Request;
+import cn.oasistech.agent.Response;
+import cn.oasistech.agent.SetIdRequest;
+import cn.oasistech.agent.SetIdResponse;
+import cn.oasistech.agent.SetTagRequest;
+import cn.oasistech.agent.SetTagResponse;
 import cn.oasistech.util.Tag;
 
 public class AgentHandler<Channel> {
-    private AgentParser parser;
     private AgentContext<Channel> agentCtx;
     private Logger logger = new Logger().addPrinter(System.out);
     
-    public AgentHandler(AgentContext<Channel> agentCtx, AgentParser parser) {
+    public AgentHandler(AgentContext<Channel> agentCtx) {
         this.agentCtx = agentCtx;
-        this.parser = parser;
     }
     
-    public byte[] processRequest(Peer<Channel> peer, byte[] buffer) {
-        Request request = parser.decodeRequest(buffer);
-        if (request == null) {
-            logger.log("request is null");
-            ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-            AgentProtocol.writeHead(outBuffer, peer.getId(), 0);
-            return outBuffer.toByteArray();
-        }
-        
+    public Response processRequest(Peer<Channel> peer, Request request) {
         Response response = null;
+        
         if (request instanceof SetIdRequest) {
             response = setId(peer, (SetIdRequest)request);
         }else if (request instanceof GetIdRequest) {
@@ -42,20 +55,16 @@ public class AgentHandler<Channel> {
             response = getTag((GetTagRequest)request);
         }else if (request instanceof GetIdTagRequest) {
         	response = getIdTag((GetIdTagRequest)request);
+        }else if (request instanceof ListenConnectionRequest) {
+            response = listenConnection(peer, (ListenConnectionRequest)request);
+        }else {
+            return null;
         }
         
         logger.log("recv request:%s", request.toString());
         logger.log("send response:%s", response.toString());
         
-        byte[] out = parser.encodeResponse(response);
-        if (out == null) {
-            logger.log("response is null");
-            ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-            AgentProtocol.writeHead(outBuffer, peer.getId(), 0);
-            return outBuffer.toByteArray();
-        }
-        
-        return out;
+        return response;
     }
     
     public Response setId(Peer<Channel> peer, SetIdRequest request) {
@@ -63,7 +72,7 @@ public class AgentHandler<Channel> {
         int newId = request.getId();
         Peer<Channel> newPeer = agentCtx.getIdMap().get(newId);
         if (newPeer != null) {
-            response.setError(AgentProtocol.Error.IdExisted.name());
+            response.setError(AgentProtocol.Error.IdExisted);
             return response;
         }
 
@@ -167,7 +176,27 @@ public class AgentHandler<Channel> {
     	return response;
     }
     
-    public AgentParser getAgentParser() {
-        return parser;
+    private ListenConnectionResponse listenConnection(Peer<Channel> peer, ListenConnectionRequest request) {
+        Map<String, String> tags = new HashMap<String, String>();
+        for (Tag tag : request.getTags()) {
+            tags.put(tag.getKey(), tag.getValue());
+        }
+        peer.setListenTags(tags);
+        
+        return new ListenConnectionResponse();
+    }
+    
+    public Response getNotifyConnectionResponse(Peer<Channel> listeningPeer, Peer<Channel> connection, NotifyConnectionResponse.Action action) {
+        if (listeningPeer.isListening(connection.getTags())) {
+            NotifyConnectionResponse response = new NotifyConnectionResponse();
+            IdTag idTag = new IdTag();
+            idTag.setId(connection.getId());
+            idTag.setTags(connection.getTagList());
+            response.setIdTag(idTag);
+            response.setAction(action);
+            return response;
+        }
+        
+        return null;
     }
 }
