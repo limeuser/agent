@@ -2,11 +2,11 @@ package cn.oasistech.agent.server;
 
 import java.net.InetSocketAddress;
 
+import mjoys.io.Serializer;
 import mjoys.util.Address;
 import mjoys.util.ClassUtil;
 import mjoys.util.Logger;
 import cn.oasistech.agent.AgentContext;
-import cn.oasistech.agent.AgentMsgSerializer;
 import cn.oasistech.util.Cfg;
 import cn.oasistech.util.Server;
 import io.netty.bootstrap.ServerBootstrap;
@@ -25,7 +25,7 @@ public class AgentNettyServer implements Server {
     private AgentContext<Channel> agentCtx;
     private Logger logger = new Logger().addPrinter(System.out);
     private AgentHandler<Channel> handler;
-    private AgentMsgSerializer parser;
+    private Serializer parser;
     
     public boolean start(Address address) {
         if (workerGroup != null) {

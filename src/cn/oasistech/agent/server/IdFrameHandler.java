@@ -10,10 +10,12 @@ import io.netty.util.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.List;
 
+import mjoys.io.Serializer;
+import mjoys.util.ByteUnit;
 import mjoys.util.Logger;
 import cn.oasistech.agent.AgentContext;
-import cn.oasistech.agent.AgentMsgSerializer;
 import cn.oasistech.agent.AgentProtocol;
+import cn.oasistech.agent.ByteBufIdFrame;
 import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.NotifyConnectionResponse;
 import cn.oasistech.agent.Peer;
@@ -21,14 +23,16 @@ import cn.oasistech.agent.Request;
 import cn.oasistech.agent.Response;
 
 public class IdFrameHandler extends ChannelInboundHandlerAdapter {
-    private AgentMsgSerializer parser;
+    private Serializer parser;
     private AgentHandler<Channel> handler;
     private AgentContext<Channel> agentCtx;
+    private ByteBuf sendBuf;
     private Logger logger = new Logger().addPrinter(System.out);
     
-    public IdFrameHandler(AgentContext<Channel> agentCtx, AgentHandler<Channel> handler, AgentMsgSerializer parser) {
+    public IdFrameHandler(AgentContext<Channel> agentCtx, AgentHandler<Channel> handler, Serializer parser) {
         this.handler = handler;
         this.agentCtx = agentCtx;
+        this.sendBuf = Unpooled.directBuffer(ByteUnit.KB);
     }
     
     @Override
@@ -71,8 +75,8 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         }
     }
     
-    private void processRequest(Peer<Channel> peer, IdFrame idFrame) {
-        Request request = parser.decodeRequest(idFrame.getBody());
+    private void processRequest(Peer<Channel> peer, IdFrame<ByteBuf> idFrame) {
+        Request request = parser.decode(idFrame.getBody());
         if (request == null) {
             logger.log("request is null");
             sendError(peer.getChannel(), AgentProtocol.MsgType.Unknown, AgentProtocol.Error.BadMessageFormat);
@@ -90,7 +94,7 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
             return;
         }
         
-        byte[] data = parser.encodeResponse(response);
+        byte[] data = parser.encode(response);
         sendData(peer.getChannel(), AgentProtocol.PublicService.Agent.id, data, data.length);
         
         // notify connection changed
@@ -208,15 +212,11 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         Response response = new Response();
         response.setType(type);
         response.setError(error);
-        byte[] data = parser.encodeResponse(response);
+        this.sendBuf.writeInt(AgentProtocol.PublicService.Agent.id);
+        this.sendBuf
+        frame.encodeHead(AgentProtocol.PublicService.Agent.id, )
+        buf.array();
+        byte[] data = parser.encode(response);
         sendData(channel, AgentProtocol.PublicService.Agent.id, data, data.length);
-    }
-    
-    public final static void sendData(Channel channel, int id, byte[] data, int dataLength) {
-        ByteBuf writeBuffer = Unpooled.buffer();
-        writeBuffer.writeInt(id);
-        writeBuffer.writeInt(data.length);
-        writeBuffer.writeBytes(data, 0, dataLength);
-        channel.writeAndFlush(writeBuffer);
     }
 }

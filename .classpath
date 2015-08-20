@@ -2,7 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="lib" path="libs/netty-4.0.26.Final.jar"/>
+	<classpathentry kind="lib" path="libs/netty-4.0.26.Final.jar" sourcepath="libs/netty-all-4.0.26.Final-sources.jar"/>
 	<classpathentry kind="lib" path="libs/jackson-annotations-2.5.0.jar"/>
 	<classpathentry kind="lib" path="libs/jackson-core-2.5.0.jar"/>
 	<classpathentry kind="lib" path="libs/jackson-databind-2.5.0.jar"/>

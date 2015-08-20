@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import mjoys.io.Serializer;
 import mjoys.socket.tcp.client.SocketClient;
 import mjoys.util.Address;
 import mjoys.util.ClassUtil;
@@ -14,7 +15,7 @@ import cn.oasistech.util.Tag;
 
 public class AgentAsynRpc {
     private SocketClient client;
-    private AgentMsgSerializer serializer;
+    private Serializer serializer;
     private AgentRpcHandler handler;
     private byte[] buffer;
     private Thread readerThread;
