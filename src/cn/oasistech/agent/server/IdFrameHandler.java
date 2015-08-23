@@ -1,6 +1,7 @@
 package cn.oasistech.agent.server;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -10,16 +11,15 @@ import io.netty.util.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.List;
 
+import mjoys.frame.TLV;
+import mjoys.frame.TV;
 import mjoys.io.Serializer;
 import mjoys.util.ByteUnit;
 import mjoys.util.Logger;
 import cn.oasistech.agent.AgentContext;
 import cn.oasistech.agent.AgentProtocol;
-import cn.oasistech.agent.ByteBufIdFrame;
-import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.NotifyConnectionResponse;
 import cn.oasistech.agent.Peer;
-import cn.oasistech.agent.Request;
 import cn.oasistech.agent.Response;
 
 public class IdFrameHandler extends ChannelInboundHandlerAdapter {
@@ -63,9 +63,10 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
                 peer = addNewPeer(ctx.channel());
                 logger.log("add new peer when channelRead:%s", peer.toString());
             }
-
-            IdFrame idFrame = (IdFrame) msg;
-            if (idFrame.getId() == AgentProtocol.PublicService.Agent.id) {
+            
+            @SuppressWarnings("unchecked")
+			TLV<ByteBuf> idFrame = (TLV<ByteBuf>)msg;
+            if (idFrame.tag == AgentProtocol.PublicService.Agent.id) {
                 processRequest(peer, idFrame);
             } else {
                 route(peer, idFrame);
@@ -74,32 +75,37 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
             ReferenceCountUtil.release(msg);
         }
     }
-    
-    private void processRequest(Peer<Channel> peer, IdFrame<ByteBuf> idFrame) {
-        Request request = parser.decode(idFrame.getBody());
-        if (request == null) {
-            logger.log("request is null");
+
+    private void processRequest(Peer<Channel> peer, TLV<ByteBuf> idFrame) {
+    	TV<ByteBuf> requestFrame = FrameParser.parseAgentMsgFrame(idFrame.body);
+    	if (requestFrame == null) {
+    		logger.log("bad agent request frame");
+    		return;
+    	}
+
+    	AgentProtocol.MsgType requestType = AgentProtocol.getMsgType(requestFrame.tag);
+    	if (requestType == AgentProtocol.MsgType.Unknown) {
+            logger.log("request is unknown");
             sendError(peer.getChannel(), AgentProtocol.MsgType.Unknown, AgentProtocol.Error.BadMessageFormat);
             return;
         }
         
         List<Peer<Channel>> listenersBefore = null;
-        if (request.getType().equals(AgentProtocol.MsgType.SetTag)) {
+        if (requestType == AgentProtocol.MsgType.SetTag) {
             listenersBefore = agentCtx.getListeners(peer);
         }
         
-        Response response = handler.processRequest(peer, request);
+        Response response = handler.processRequest(peer, requestType, idFrame.body);
         if (response == null) {
             sendError(peer.getChannel(), AgentProtocol.MsgType.Unknown, AgentProtocol.Error.InvalidRequest);
             return;
         }
         
-        byte[] data = parser.encode(response);
-        sendData(peer.getChannel(), AgentProtocol.PublicService.Agent.id, data, data.length);
+        sendData(peer.getChannel(), AgentProtocol.PublicService.Agent.id, requestType, response);
         
         // notify connection changed
         List<Peer<Channel>> listenersAfter = null;
-        if (request.getType().equals(AgentProtocol.MsgType.SetTag.name())) {
+        if (requestType == AgentProtocol.MsgType.SetTag) {
             listenersAfter = agentCtx.getListeners(peer);
             
             for (Peer<Channel> oldListener : listenersBefore) {
@@ -130,10 +136,9 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
-    private void route(Peer<Channel> srcHost, IdFrame idFrame) {
+    private void route(Peer<Channel> srcHost, TLV<ByteBuf> idFrame) {
         // route request: replace dst-id with src-id in frame
-        int dstId = idFrame.getId();
-        int srcId = srcHost.getId();
+        int dstId = idFrame.tag;
 
         Peer<Channel> dstHost = agentCtx.getIdMap().get(dstId);
         if (dstHost == null) {
@@ -142,7 +147,9 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        sendData(dstHost.getChannel(), srcId, idFrame.getBody(), idFrame.getBodyLength());
+        idFrame.body.setInt(0, dstId);
+        idFrame.body.resetReaderIndex();
+        dstHost.getChannel().write(idFrame.body);
         logger.log("route a message from %s to %s", srcHost.toString(), dstHost.toString());
     }
     
@@ -202,21 +209,31 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         for (Peer<Channel> peer : agentCtx.getIdMap().values()) {
             Response response = this.handler.getNotifyConnectionResponse(peer, connectionPeer, action);
             if (response != null) {
-                byte[] data = parser.encodeResponse(response);
-                sendData(peer.getChannel(), AgentProtocol.PublicService.Agent.id, data, data.length);
+                sendData(peer.getChannel(), AgentProtocol.PublicService.Agent.id, AgentProtocol.MsgType.NotifyConnection, response);
             }
         }
     }
     
     private void sendError(Channel channel, AgentProtocol.MsgType type, AgentProtocol.Error error) {
         Response response = new Response();
-        response.setType(type);
         response.setError(error);
-        this.sendBuf.writeInt(AgentProtocol.PublicService.Agent.id);
-        this.sendBuf
-        frame.encodeHead(AgentProtocol.PublicService.Agent.id, )
-        buf.array();
-        byte[] data = parser.encode(response);
-        sendData(channel, AgentProtocol.PublicService.Agent.id, data, data.length);
+        sendData(channel, AgentProtocol.PublicService.Agent.id, type, response);
+    }
+    
+    public void sendData(Channel channel, int id, AgentProtocol.MsgType type, Object body) {
+    	this.sendBuf.clear();
+    	this.sendBuf.writerIndex(AgentProtocol.HeadLength + AgentProtocol.TypeFieldLength);
+    	try {
+    		parser.encode(body, new ByteBufOutputStream(this.sendBuf));
+    	} catch(Exception e) {
+    		logger.log("serializer response exception", e);
+    		return;
+    	}
+    	int length = this.sendBuf.writerIndex() - AgentProtocol.HeadLength - AgentProtocol.TypeFieldLength;
+    	this.sendBuf.resetWriterIndex();
+    	this.sendBuf.writeInt(id);
+    	this.sendBuf.writeInt(length);
+    	this.sendBuf.writeInt(type.ordinal());
+    	channel.write(this.sendBuf);
     }
 }

@@ -4,10 +4,6 @@ import mjoys.util.Formater;
 
 public class GetMyIdResponse extends Response {
     private int id;
-
-    public GetMyIdResponse() {
-        super(AgentProtocol.MsgType.GetMyId, AgentProtocol.Error.Success);
-    }
     
     public int getId() {
         return id;

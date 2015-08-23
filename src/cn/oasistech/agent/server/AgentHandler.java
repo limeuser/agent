@@ -1,11 +1,15 @@
 package cn.oasistech.agent.server;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import mjoys.io.Serializer;
 import mjoys.util.Logger;
 import mjoys.util.StringUtil;
 import cn.oasistech.agent.AgentContext;
@@ -24,7 +28,6 @@ import cn.oasistech.agent.ListenConnectionRequest;
 import cn.oasistech.agent.ListenConnectionResponse;
 import cn.oasistech.agent.NotifyConnectionResponse;
 import cn.oasistech.agent.Peer;
-import cn.oasistech.agent.Request;
 import cn.oasistech.agent.Response;
 import cn.oasistech.agent.SetIdRequest;
 import cn.oasistech.agent.SetIdResponse;
@@ -33,35 +36,40 @@ import cn.oasistech.agent.SetTagResponse;
 import cn.oasistech.util.Tag;
 
 public class AgentHandler<Channel> {
+	private Serializer serializer;
     private AgentContext<Channel> agentCtx;
     private Logger logger = new Logger().addPrinter(System.out);
     
-    public AgentHandler(AgentContext<Channel> agentCtx) {
+    public AgentHandler(AgentContext<Channel> agentCtx, Serializer serializer) {
         this.agentCtx = agentCtx;
+        this.serializer = serializer;
     }
     
-    public Response processRequest(Peer<Channel> peer, Request request) {
+    public Response processRequest(Peer<Channel> peer, AgentProtocol.MsgType requestType, ByteBuf buf) {
         Response response = null;
-        
-        if (request instanceof SetIdRequest) {
-            response = setId(peer, (SetIdRequest)request);
-        }else if (request instanceof GetIdRequest) {
-            response = getId((GetIdRequest)request);
-        }else if (request instanceof GetMyIdRequest) {
-            response = getMyId(peer, (GetMyIdRequest)request);
-        }else if (request instanceof SetTagRequest) {
-            response = setTag(peer, (SetTagRequest)request);
-        }else if (request instanceof GetTagRequest) {
-            response = getTag((GetTagRequest)request);
-        }else if (request instanceof GetIdTagRequest) {
-        	response = getIdTag((GetIdTagRequest)request);
-        }else if (request instanceof ListenConnectionRequest) {
-            response = listenConnection(peer, (ListenConnectionRequest)request);
-        }else {
-            return null;
+        try {
+	        if (requestType == AgentProtocol.MsgType.SetId) {
+	            response = setId(peer, serializer.decode(new ByteBufInputStream(buf), SetIdRequest.class));
+	        }else if (requestType == AgentProtocol.MsgType.GetId) {
+	            response = getId(serializer.decode(new ByteBufInputStream(buf), GetIdRequest.class));
+	        }else if (requestType == AgentProtocol.MsgType.GetMyId) {
+	            response = getMyId(peer, serializer.decode(new ByteBufInputStream(buf), GetMyIdRequest.class));
+	        }else if (requestType == AgentProtocol.MsgType.SetTag) {
+	            response = setTag(peer, serializer.decode(new ByteBufInputStream(buf), SetTagRequest.class));
+	        }else if (requestType == AgentProtocol.MsgType.GetTag) {
+	            response = getTag(serializer.decode(new ByteBufInputStream(buf), GetTagRequest.class));
+	        }else if (requestType == AgentProtocol.MsgType.GetIdTag) {
+	        	response = getIdTag(serializer.decode(new ByteBufInputStream(buf), GetIdTagRequest.class));
+	        }else if (requestType == AgentProtocol.MsgType.ListenConnection) {
+	            response = listenConnection(peer, serializer.decode(new ByteBufInputStream(buf), ListenConnectionRequest.class));
+	        }else {
+	            return null;
+	        }
+        } catch (Exception e) {
+        	logger.log("parse request exception", e);
+        	return null;
         }
         
-        logger.log("recv request:%s", request.toString());
         logger.log("send response:%s", response.toString());
         
         return response;

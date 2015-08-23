@@ -5,12 +5,8 @@ import java.util.List;
 
 import mjoys.util.Formater;
 
-public class GetTagRequest extends Request {
+public class GetTagRequest {
     private List<IdKey> idKeys = new ArrayList<IdKey>();
-    
-    public GetTagRequest() {
-        super(AgentProtocol.MsgType.GetTag);
-    }
 
     public List<IdKey> getIdKeys() {
         return idKeys;

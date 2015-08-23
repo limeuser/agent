@@ -5,10 +5,6 @@ import mjoys.util.Formater;
 public class NotifyConnectionResponse extends Response {
     private IdTag idTag;
     private Action action;
-    
-    public NotifyConnectionResponse() {
-        super(AgentProtocol.MsgType.NotifyConnection, AgentProtocol.Error.Success);
-    }
 
     public IdTag getIdTag() {
         return idTag;

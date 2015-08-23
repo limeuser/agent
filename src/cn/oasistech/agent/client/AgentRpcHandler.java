@@ -1,7 +1,7 @@
 package cn.oasistech.agent.client;
 
-import cn.oasistech.agent.IdFrame;
+import mjoys.frame.TLV;
 
-public interface AgentRpcHandler {
-    void handle(AgentAsynRpc rpc, IdFrame idFrame);
+public interface AgentRpcHandler<T> {
+	void handle(AgentAsynRpc rpc, TLV<T> frame);
 }

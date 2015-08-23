@@ -1,26 +1,48 @@
 package cn.oasistech.agent.client;
 
-import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.SocketException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import mjoys.frame.ByteBufferParser;
+import mjoys.frame.TLV;
+import mjoys.frame.TV;
+import mjoys.io.ByteBufferInputStream;
+import mjoys.io.Serializer;
 import mjoys.socket.tcp.client.SocketClient;
 import mjoys.util.Address;
+import mjoys.util.ByteUnit;
 import mjoys.util.ClassUtil;
 import mjoys.util.Logger;
-import cn.oasistech.agent.*;
+import cn.oasistech.agent.AgentProtocol;
+import cn.oasistech.agent.GetIdRequest;
+import cn.oasistech.agent.GetIdResponse;
+import cn.oasistech.agent.GetIdTagRequest;
+import cn.oasistech.agent.GetIdTagResponse;
+import cn.oasistech.agent.GetMyIdRequest;
+import cn.oasistech.agent.GetMyIdResponse;
+import cn.oasistech.agent.GetTagRequest;
+import cn.oasistech.agent.GetTagResponse;
+import cn.oasistech.agent.IdKey;
+import cn.oasistech.agent.SetIdRequest;
+import cn.oasistech.agent.SetIdResponse;
+import cn.oasistech.agent.SetTagRequest;
+import cn.oasistech.agent.SetTagResponse;
 import cn.oasistech.util.Cfg;
 import cn.oasistech.util.Tag;
 
 public class AgentSyncRpc {
     private SocketClient client;
-    private AgentMsgSerializer parser;
-    private byte[] recvBuffer = new byte[2048];
+    private Serializer serializer;
+    private byte[] recvBuffer = new byte[ByteUnit.KB];
+    private byte[] sendBuffer = new byte[ByteUnit.KB];
     private final static Logger logger = new Logger().addPrinter(System.out);
     
     public boolean start(Address address) {
-        this.parser = ClassUtil.newInstance(Cfg.getParserClassName());
-        if (this.parser == null) {
+        this.serializer = ClassUtil.newInstance(Cfg.getParserClassName());
+        if (this.serializer == null) {
             return false;
         }
         
@@ -43,7 +65,7 @@ public class AgentSyncRpc {
     public SetTagResponse setTag(List<Tag> tags) {
         SetTagRequest request = new SetTagRequest();
         request.setTags(tags);
-        return (SetTagResponse) process(request);
+        return callAgent(AgentProtocol.MsgType.SetTag, request, SetTagResponse.class);
     }
     
     public GetTagResponse getTag(int id, String ...keys) {
@@ -60,7 +82,7 @@ public class AgentSyncRpc {
     public GetTagResponse getTag(List<IdKey> idKeys) {
         GetTagRequest request = new GetTagRequest();
         request.setIdKeys(idKeys);
-        return (GetTagResponse) process(request);
+        return callAgent(AgentProtocol.MsgType.GetTag, request, GetTagResponse.class);
     }
     
     public GetIdResponse getId(Tag tag) {
@@ -72,67 +94,112 @@ public class AgentSyncRpc {
     public GetIdResponse getId(List<Tag> tags) {
         GetIdRequest request = new GetIdRequest();
         request.setTags(tags);
-        return (GetIdResponse) process(request);
+        return callAgent(AgentProtocol.MsgType.GetId, request, GetIdResponse.class);
     }
     
     public GetIdTagResponse getIdTag(List<Tag> tags) {
     	GetIdTagRequest request = new GetIdTagRequest();
     	request.setTags(tags);
-    	return (GetIdTagResponse) process(request);
+    	return callAgent(AgentProtocol.MsgType.GetIdTag, request, GetIdTagResponse.class);
     }
     
     public GetMyIdResponse getMyId() {
         GetMyIdRequest request = new GetMyIdRequest();
-        return (GetMyIdResponse) process(request);
+        return callAgent(AgentProtocol.MsgType.GetMyId, request, GetMyIdResponse.class);
     }
     
     public SetIdResponse setId(int id) {
         SetIdRequest request = new SetIdRequest();
         request.setId(id);
-        return (SetIdResponse) process(request);
+        return callAgent(AgentProtocol.MsgType.SetId, request, SetIdResponse.class);
     }
     
-    public boolean sendTo(int id, byte[] body, int offset, int length) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        AgentProtocol.write(out, id, body, offset, length);
-        return client.send(out.toByteArray());
-    }
+    public TV<ByteBuffer> recv() {
+    	int length = 0;
     
-    public boolean sendTo(int id, byte[] body) {
-        return sendTo(id, body, 0, body.length);
-    }
-    
-    public IdFrame recv() {
-        int length = client.recv(recvBuffer);
-        if (length < AgentProtocol.IdHeadLength) {
+    	try {
+    		length = client.recv(recvBuffer);
+    	} catch (SocketException e) {
+    		client.reconnect();
+    	} catch (IOException e) {
+    		logger.log("agent sync rpc recv exception", e);
+    	}
+    	
+        if (length < AgentProtocol.HeadLength) {
             return null;
         }
         
-        return AgentProtocol.parseIdFrame(recvBuffer);
+        TLV<ByteBuffer> idFrame = ByteBufferParser.parseTLV(ByteBuffer.wrap(recvBuffer, 0, length));
+        return AgentProtocol.parseMsgFrame(idFrame.body);
     }
     
-    public IdFrame call(int id, byte[] body, int offset, int bodyLength) {
-        if (sendTo(id, body, offset, bodyLength) == true) {
-            return recv();
-        }
-        return null;
+    public boolean send(int id, ByteBuffer body) {
+    	ByteBuffer byteBuffer = ByteBuffer.wrap(sendBuffer);
+    	
+    	try {
+    		AgentProtocol.encodeBody(id, byteBuffer, body);
+    		client.send(byteBuffer.array(), byteBuffer.position(), byteBuffer.remaining());
+    		return true;
+    	} catch (SocketException e) {
+    		logger.log("agent sync rpc socket exception, reconnect", e);
+    		client.reconnect();
+    		return false;
+    	} catch (IOException e) {
+    		logger.log("agetn sync rpc send body io excetion:%s", e);
+    		return false;
+    	}
     }
     
-    public IdFrame call(int id, byte[] body) {
-        return call(id, body, 0, body.length);
+    public boolean sendMsg(int id, int msgType, Object msg) {
+    	try {
+    		int length = AgentProtocol.encodeMsg(id, msgType, msg, ByteBuffer.wrap(sendBuffer), serializer);
+    		client.send(sendBuffer, 0, length);
+    		logger.log("agent sync rpc send msg: msg=%s", msg.toString());
+    		return true;
+    	} catch (Exception e) {
+    		logger.log("agent sync rpc send msg exception: msg=%s", e, msg.toString());
+    		return false;
+    	}
     }
     
-    private Response process(Request request) {
-        logger.log("sync rpc send request:%s", request.toString());
-        
-        byte[] requestBuf = parser.encodeRequest(request);
-        IdFrame frame = call(AgentProtocol.PublicService.Agent.id, requestBuf);
-        if (frame == null) {
-            return null;
-        }
-        
-        Response response = parser.decodeResponse(frame.getBody());
-        logger.log("sync rpc recv response:%s", response.toString());
-        return response;
+    public <Req, Res> Res callAgent(AgentProtocol.MsgType type, Req request, Class<Res> responseClass) {
+    	return call(AgentProtocol.PublicService.Agent.id, type.ordinal(), request, responseClass);
     }
+    
+    public ByteBuffer call(int id, ByteBuffer body) {
+    	if (send(id, body) == false) {
+    		return null;
+    	}
+    	
+    	TV<ByteBuffer> responseFrame = recv();
+		if (responseFrame == null) {
+			logger.log("can't get response");
+			return null;
+		}
+		
+		return responseFrame.body;
+    }
+    
+	public <Request, Response> Response call(int id, int type, Request request, Class<Response> responseClass) {
+		if (sendMsg(id, type, request) == false) {
+			return null;
+		}
+		
+		TV<ByteBuffer> responseFrame = recv();
+		if (responseFrame == null) {
+			logger.log("can't get response");
+			return null;
+		}
+		
+		if (responseClass == null) {
+			return null;
+		}
+		
+		try {
+			return serializer.decode(new ByteBufferInputStream(responseFrame.body), responseClass);
+		} catch (Exception e) {
+			logger.log("decode response exception", e);
+			return null;
+		}
+	}
 }

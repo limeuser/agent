@@ -3,12 +3,9 @@ package cn.oasistech.agent;
 import mjoys.util.Formater;
 
 
-public class SetIdRequest extends Request {
+public class SetIdRequest {
     private int id;
-    
-    public SetIdRequest() {
-        super(AgentProtocol.MsgType.SetId);
-    }
+
     public int getId() {
         return id;
     }

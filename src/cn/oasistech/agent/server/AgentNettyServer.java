@@ -1,5 +1,14 @@
 package cn.oasistech.agent.server;
 
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+
 import java.net.InetSocketAddress;
 
 import mjoys.io.Serializer;
@@ -9,14 +18,6 @@ import mjoys.util.Logger;
 import cn.oasistech.agent.AgentContext;
 import cn.oasistech.util.Cfg;
 import cn.oasistech.util.Server;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 public class AgentNettyServer implements Server {
     private InetSocketAddress address;
@@ -46,7 +47,7 @@ public class AgentNettyServer implements Server {
         this.bossGroup = new NioEventLoopGroup();
         this.workerGroup = new NioEventLoopGroup();
         this.agentCtx = new AgentContext<Channel>();
-        this.handler = new AgentHandler<Channel>(agentCtx);
+        this.handler = new AgentHandler<Channel>(agentCtx, parser);
         
         try {
             ServerBootstrap b = new ServerBootstrap(); 

@@ -4,12 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GetIdResponse extends Response {
-    private List<Integer> ids;
-    
-    public GetIdResponse() {
-        super(AgentProtocol.MsgType.GetId, AgentProtocol.Error.Success);
-        ids = new ArrayList<Integer>();
-    }
+    private List<Integer> ids = new ArrayList<Integer>();
+
     public List<Integer> getIds() {
         return ids;
     }

@@ -6,11 +6,10 @@ import java.util.List;
 import mjoys.util.Formater;
 import cn.oasistech.util.Tag;
 
-public class SetTagRequest extends Request {
+public class SetTagRequest {
     private List<Tag> tags;
     
     public SetTagRequest() {
-        super(AgentProtocol.MsgType.SetTag);
         this.tags = new ArrayList<Tag>();
     }
     public List<Tag> getTags() {

@@ -6,12 +6,7 @@ import java.util.List;
 import mjoys.util.Formater;
 
 public class GetTagResponse extends Response {
-    private List<IdTag> idTags;
-    
-    public GetTagResponse() {
-        super(AgentProtocol.MsgType.GetTag, AgentProtocol.Error.Success);
-        this.idTags = new ArrayList<IdTag>();
-    }
+    private List<IdTag> idTags = new ArrayList<IdTag>();
 
     public List<IdTag> getIdTags() {
         return idTags;

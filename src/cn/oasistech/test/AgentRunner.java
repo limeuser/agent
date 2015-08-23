@@ -3,14 +3,15 @@ package cn.oasistech.test;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import mjoys.frame.TLV;
 import mjoys.util.Address;
 import mjoys.util.NumberUtil;
 import mjoys.util.StringUtil;
 import cn.oasistech.agent.AgentProtocol;
-import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.IdKey;
 import cn.oasistech.agent.client.AgentAsynRpc;
 import cn.oasistech.agent.client.AgentRpcHandler;
@@ -149,8 +150,8 @@ public class AgentRunner {
                     continue;
                 }
                 String msg = tokens[2];
-                agentSyncRpc.sendTo(id, msg.getBytes("UTF-8"));
-                agentAsynRpc.sendTo(id, msg.getBytes("UTF-8"));
+                agentSyncRpc.send(id, ByteBuffer.wrap(StringUtil.toBytes(msg, "UTF-8")));
+                agentAsynRpc.send(id, ByteBuffer.wrap(StringUtil.toBytes(msg, "UTF-8")));
             }
             else {
                 System.out.println("unknowen command");
@@ -160,10 +161,10 @@ public class AgentRunner {
         }
     }
     
-    public static class LogHandler implements AgentRpcHandler {
+    public static class LogHandler implements AgentRpcHandler<ByteBuffer> {
         @Override
-        public void handle(AgentAsynRpc rpc, IdFrame idFrame) {
-            System.out.println("recv message from " + idFrame.getId() + ": " + StringUtil.getUTF8String(idFrame.getBody()));
+        public void handle(AgentAsynRpc rpc, TLV<ByteBuffer> idFrame) {
+            System.out.println("recv message from " + idFrame.tag + ": " + StringUtil.getUTF8String(idFrame.body.array(), 0, idFrame.body.limit()));
         }
     }
 }
