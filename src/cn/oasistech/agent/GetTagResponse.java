@@ -18,6 +18,6 @@ public class GetTagResponse extends Response {
     
     @Override 
     public String toString() {
-        return super.toString() + ", " + Formater.formatEntry("IdTags", Formater.formatCollection(idTags));
+        return Formater.format(super.toString(), Formater.formatEntry("IdTags", Formater.formatCollection(idTags)));
     }
 }

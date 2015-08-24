@@ -15,6 +15,6 @@ public class GetMyIdResponse extends Response {
     
     @Override 
     public String toString() {
-        return super.toString() + Formater.formatEntries("id", id);
+        return Formater.format(super.toString(), Formater.formatEntry("id", id));
     }
 }

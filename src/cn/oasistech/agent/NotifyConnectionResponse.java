@@ -24,7 +24,7 @@ public class NotifyConnectionResponse extends Response {
     
     @Override
     public String toString() {
-        return super.toString() + ", " + Formater.formatEntries("IdTag", idTag.toString(), "Action", action.name());
+        return Formater.format(super.toString(), Formater.formatEntries("IdTag", idTag.toString(), "Action", action.name()));
     }
 
     public enum Action {

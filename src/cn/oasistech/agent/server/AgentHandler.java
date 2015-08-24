@@ -185,12 +185,7 @@ public class AgentHandler<Channel> {
     }
     
     private ListenConnectionResponse listenConnection(Peer<Channel> peer, ListenConnectionRequest request) {
-        Map<String, String> tags = new HashMap<String, String>();
-        for (Tag tag : request.getTags()) {
-            tags.put(tag.getKey(), tag.getValue());
-        }
-        peer.setListenTags(tags);
-        
+        peer.getListeners().add(request.getIdTag());
         return new ListenConnectionResponse();
     }
     

@@ -3,6 +3,8 @@ package cn.oasistech.agent;
 import java.util.ArrayList;
 import java.util.List;
 
+import mjoys.util.Formater;
+
 public class GetIdResponse extends Response {
     private List<Integer> ids = new ArrayList<Integer>();
 
@@ -15,12 +17,6 @@ public class GetIdResponse extends Response {
     
     @Override 
     public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(super.toString());
-        str.append(", ids:");
-        for (int id : ids) {
-            str.append(id).append(", ");
-        }
-        return str.toString();
+        return Formater.format(super.toString(), Formater.formatEntry("ids", Formater.formatCollection(ids)));
     }
 }

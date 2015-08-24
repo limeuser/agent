@@ -11,13 +11,13 @@ public class Peer<Channel> {
     private int id;
     private Channel channel;
     private Map<String, String> tags;
-    private Map<String, String> listeningTags;
+    private List<IdTag> listeners;
     
     public Peer(int id, Channel channel) {
         this.id = id;
         this.channel = channel;
         this.tags = new HashMap<String, String>();
-        this.listeningTags = new HashMap<String, String>();
+        this.listeners = new ArrayList<IdTag>();
     }
     
     public int getId() {
@@ -63,26 +63,11 @@ public class Peer<Channel> {
         this.tags = tags;
     }
 
-    public Map<String, String> getListenTags() {
-        return listeningTags;
+    public List<IdTag> getListeners() {
+        return listeners;
     }
 
-    public void setListenTags(Map<String, String> listenTags) {
-        this.listeningTags = listenTags;
-    }
-    
-    public boolean isListening(Map<String, String> tags) {
-        if (this.listeningTags.isEmpty()) {
-            return false;
-        }
-        
-        for (String key : this.listeningTags.keySet()) {
-            String listeningValue = this.listeningTags.get(key);
-            if (!listeningValue.isEmpty() && !listeningValue.equals(tags.get(key))) {
-                return false;
-            }
-        }
-        
-        return true;
+    public void setListeners(List<IdTag> listeners) {
+        this.listeners = listeners;
     }
 }

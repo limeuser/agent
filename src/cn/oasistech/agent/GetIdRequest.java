@@ -21,6 +21,6 @@ public class GetIdRequest {
     
     @Override 
     public String toString() {
-        return super.toString() + ", " + Formater.formatEntry("tags", Formater.formatCollection(tags));
+        return Formater.formatEntry("tags", Formater.formatCollection(tags));
     }
 }

@@ -18,6 +18,6 @@ public class GetTagRequest {
     
     @Override 
     public String toString() {
-        return super.toString() + ", " + Formater.formatCollection(idKeys);
+        return Formater.formatCollection(idKeys);
     }
 }
