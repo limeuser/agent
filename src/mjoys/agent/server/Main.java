@@ -8,7 +8,7 @@ public class Main {
     
     public static void main(String[] args) {
         agentServer = new AgentNettyServer();
-        if (false == agentServer.start(Address.parse(Cfg.getServerAddress()))) {
+        if (false == agentServer.start(Address.parse(Cfg.instance.getServerAddress()))) {
             return;
         }
     }

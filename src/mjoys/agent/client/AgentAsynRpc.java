@@ -38,7 +38,7 @@ public class AgentAsynRpc {
     private final static Logger logger = new Logger().addPrinter(System.out);
     
     public boolean start(Address serverAddress, AgentRpcHandler<ByteBuffer> handler) {
-        this.serializer = ClassUtil.newInstance(Cfg.getSerializerClassName());
+        this.serializer = ClassUtil.newInstance(Cfg.instance.getSerializerClassName());
         if (serializer == null) {
             return false;
         }

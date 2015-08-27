@@ -33,7 +33,7 @@ public class AgentNettyServer implements AgentServer {
             return true;
         }
         
-        this.parser = ClassUtil.newInstance(Cfg.getSerializerClassName());
+        this.parser = ClassUtil.newInstance(Cfg.instance.getSerializerClassName());
         if (this.parser == null) {
             return false;
         }

@@ -18,7 +18,7 @@ public class TestAgentRpcHandler implements AgentRpcHandler<ByteBuffer> {
     
     public TestAgentRpcHandler() {
         try {
-            this.serializer = (Serializer)Class.forName(Cfg.getSerializerClassName()).newInstance();
+            this.serializer = (Serializer)Class.forName(Cfg.instance.getSerializerClassName()).newInstance();
         } catch (Exception e) {
             logger.log("can't create parser class:", e);
         }

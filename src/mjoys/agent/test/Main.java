@@ -31,7 +31,7 @@ public class Main {
     private static AgentAsynRpc agentAsynRpc;
     
     public static void main(String[] args) throws IOException {
-        agentAddress = Address.parse(Cfg.getServerAddress());
+        agentAddress = Address.parse(Cfg.instance.getServerAddress());
         agentServer = new AgentNettyServer();
         agentSyncRpc = new AgentSyncRpc();
         agentAsynRpc = new AgentAsynRpc();
