@@ -41,7 +41,7 @@ public class AgentSyncRpc {
     private final static Logger logger = new Logger().addPrinter(System.out);
     
     public boolean start(Address address) {
-        this.serializer = ClassUtil.newInstance(Cfg.getSerializerClassName());
+        this.serializer = ClassUtil.newInstance(Cfg.instance.getSerializerClassName());
         if (this.serializer == null) {
             return false;
         }
