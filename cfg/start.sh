@@ -1,1 +1,1 @@
-java -Djava.ext.dirs=../libs -cp ../bin cn.oasistech.runner.AgentRunner
+java -Djava.ext.dirs=../libs -cp ../bin mjoys.agent.server.Main
