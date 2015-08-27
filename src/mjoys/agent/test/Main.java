@@ -14,7 +14,7 @@ import mjoys.agent.client.AgentAsynRpc;
 import mjoys.agent.client.AgentRpcHandler;
 import mjoys.agent.client.AgentSyncRpc;
 import mjoys.agent.server.AgentNettyServer;
-import mjoys.agent.util.Cfg;
+import mjoys.agent.util.AgentCfg;
 import mjoys.agent.util.Tag;
 import mjoys.frame.ByteBufferParser;
 import mjoys.frame.TLV;
@@ -31,7 +31,7 @@ public class Main {
     private static AgentAsynRpc agentAsynRpc;
     
     public static void main(String[] args) throws IOException {
-        agentAddress = Address.parse(Cfg.instance.getServerAddress());
+        agentAddress = Address.parse(AgentCfg.instance.getServerAddress());
         agentServer = new AgentNettyServer();
         agentSyncRpc = new AgentSyncRpc();
         agentAsynRpc = new AgentAsynRpc();

@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 import mjoys.agent.Agent;
 import mjoys.agent.Response;
-import mjoys.agent.util.Cfg;
+import mjoys.agent.util.AgentCfg;
 import mjoys.frame.ByteBufferParser;
 import mjoys.frame.TLV;
 import mjoys.frame.TV;
@@ -18,7 +18,7 @@ public class TestAgentRpcHandler implements AgentRpcHandler<ByteBuffer> {
     
     public TestAgentRpcHandler() {
         try {
-            this.serializer = (Serializer)Class.forName(Cfg.instance.getSerializerClassName()).newInstance();
+            this.serializer = (Serializer)Class.forName(AgentCfg.instance.getSerializerClassName()).newInstance();
         } catch (Exception e) {
             logger.log("can't create parser class:", e);
         }

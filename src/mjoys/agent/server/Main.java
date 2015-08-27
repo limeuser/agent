@@ -1,6 +1,6 @@
 package mjoys.agent.server;
 
-import mjoys.agent.util.Cfg;
+import mjoys.agent.util.AgentCfg;
 import mjoys.util.Address;
 
 public class Main {
@@ -8,7 +8,7 @@ public class Main {
     
     public static void main(String[] args) {
         agentServer = new AgentNettyServer();
-        if (false == agentServer.start(Address.parse(Cfg.instance.getServerAddress()))) {
+        if (false == agentServer.start(Address.parse(AgentCfg.instance.getServerAddress()))) {
             return;
         }
     }

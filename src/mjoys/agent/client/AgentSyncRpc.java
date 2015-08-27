@@ -19,7 +19,7 @@ import mjoys.agent.SetIdRequest;
 import mjoys.agent.SetIdResponse;
 import mjoys.agent.SetTagRequest;
 import mjoys.agent.SetTagResponse;
-import mjoys.agent.util.Cfg;
+import mjoys.agent.util.AgentCfg;
 import mjoys.agent.util.Tag;
 import mjoys.frame.ByteBufferParser;
 import mjoys.frame.TLV;
@@ -41,7 +41,7 @@ public class AgentSyncRpc {
     private final static Logger logger = new Logger().addPrinter(System.out);
     
     public boolean start(Address address) {
-        this.serializer = ClassUtil.newInstance(Cfg.instance.getSerializerClassName());
+        this.serializer = ClassUtil.newInstance(AgentCfg.instance.getSerializerClassName());
         if (this.serializer == null) {
             return false;
         }

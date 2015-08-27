@@ -12,7 +12,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import java.net.InetSocketAddress;
 
 import mjoys.agent.AgentContext;
-import mjoys.agent.util.Cfg;
+import mjoys.agent.util.AgentCfg;
 import mjoys.io.Serializer;
 import mjoys.util.Address;
 import mjoys.util.ClassUtil;
@@ -29,11 +29,11 @@ public class AgentNettyServer implements AgentServer {
     
     public boolean start(Address address) {
         if (workerGroup != null) {
-            logger.log("server is running on port %d", this.address.getPort());
+            logger.log("server is running on %s", this.address.toString());
             return true;
         }
         
-        this.parser = ClassUtil.newInstance(Cfg.instance.getSerializerClassName());
+        this.parser = ClassUtil.newInstance(AgentCfg.instance.getSerializerClassName());
         if (this.parser == null) {
             return false;
         }
@@ -60,7 +60,7 @@ public class AgentNettyServer implements AgentServer {
                     .childOption(ChannelOption.SO_KEEPALIVE, true); 
 
             b.bind(this.address).sync();
-            logger.log("agent server started on port %d", this.address.getPort());
+            logger.log("agent server started on %s", this.address.toString());
             return true;
         } catch (Exception e) {
             logger.log("start server error:", e);
@@ -85,7 +85,7 @@ public class AgentNettyServer implements AgentServer {
         agentCtx = null;
         this.address = null;
         
-        logger.log("server stoped on port %d", this.address.getPort());
+        logger.log("server stoped on %s", this.address.toString());
     }
     
     @Override
