@@ -65,7 +65,7 @@ public class AgentHandler<Channel> {
         agentCtx.getIdMap().remove(peer.getId());
         agentCtx.getIdMap().put(newId, peer);
         peer.setId(newId);
-        logger.log("SetId: request:%s, resonse:%s", request, response);
+        logger.log("SetId: request:%s, response:%s", request, response);
         return response;
     }
     
@@ -74,14 +74,14 @@ public class AgentHandler<Channel> {
         for (Peer<Channel> p : agentCtx.getPeerByTag(request.getTags())) {
             response.getIds().add(p.getId());
         }
-        logger.log("GetId: request:%s, resonse:%s", request, response);
+        logger.log("GetId: request:%s, response:%s", request, response);
         return response;
     }
     
     public Response getMyId(Peer<Channel> peer) {
         GetMyIdResponse response = new GetMyIdResponse();
         response.setId(peer.getId());
-        logger.log("GetMyId: resonse:%s", response);
+        logger.log("GetMyId: response:%s", response);
         return response;
     }
 
@@ -90,7 +90,7 @@ public class AgentHandler<Channel> {
         for (Tag tag : request.getTags()) {
             peer.getTags().put(tag.getKey(), tag.getValue());
         }
-        logger.log("SetTag: request:%s, resonse:%s", request, response);
+        logger.log("SetTag: request:%s, response:%s", request, response);
         return response;
     }
     
@@ -112,7 +112,7 @@ public class AgentHandler<Channel> {
             }
         }
         
-        logger.log("GetTag: request:%s, resonse:%s", request, response);
+        logger.log("GetTag: request:%s, response:%s", request, response);
         
         return response;
     }
@@ -165,7 +165,7 @@ public class AgentHandler<Channel> {
     		addIdTag(response.getIdTags(), peer, keys);
     	}
     	
-    	logger.log("GetIdTag: request:%s, resonse:%s", request, response);
+    	logger.log("GetIdTag: request:%s, response:%s", request, response);
     	
     	return response;
     }
@@ -190,7 +190,7 @@ public class AgentHandler<Channel> {
             idTag.setTags(connection.getTagList());
             response.setIdTag(idTag);
             response.setAction(action);
-            logger.log("NotifyConnection: resonse:%s", response);
+            logger.log("NotifyConnection: response:%s", response);
             return response;
         }
         
