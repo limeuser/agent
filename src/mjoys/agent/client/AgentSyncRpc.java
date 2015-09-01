@@ -151,6 +151,7 @@ public class AgentSyncRpc {
     
     public boolean sendMsg(int id, int msgType, Object msg) {
     	try {
+    		logger.log("send msg(%d): %s", msgType, msg.toString());
     		int length = Agent.encodeMsg(id, msgType, msg, ByteBuffer.wrap(sendBuffer), serializer);
     		client.send(sendBuffer, 0, length);
     		return true;
