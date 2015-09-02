@@ -22,6 +22,7 @@ import mjoys.frame.TV;
 import mjoys.io.Serializer;
 import mjoys.io.SerializerException;
 import mjoys.util.Logger;
+import mjoys.util.StringUtil;
 
 public class IdFrameHandler extends ChannelInboundHandlerAdapter {
     private Serializer serializer;
@@ -224,6 +225,8 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
     }
     
     public void sendData(Channel channel, int id, Agent.MsgType type, Object body) {
+    	logger.log("agent send msg=%s:%s", type.name(), StringUtil.toString(body));
+    	
     	ByteBuf sendBuf = alloc.directBuffer();
     	sendBuf.clear();
     	sendBuf.writerIndex(Agent.HeadLength + Agent.TypeFieldLength);

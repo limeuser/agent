@@ -147,6 +147,17 @@ public class Main {
                     agentAsynRpc.setId(newId);
                 }
             }
+            else if (action.equals("listen")) {
+            	List<Tag> tags = new ArrayList<Tag>();
+                for (int i = 1; i < tokens.length; i++) {
+                	String[] kv = tokens[i].split(":");
+                	if (kv.length == 2) {
+                		tags.add(new Tag(kv[0], kv[1]));
+                	}
+                }
+                
+                agentAsynRpc.listenConnection(tags);
+            }
             else if (action.equals("sendto")) {
                 Integer id = NumberUtil.parseInt(tokens[1]);
                 if (id == null) {
@@ -168,6 +179,11 @@ public class Main {
     public static class LogHandler implements AgentRpcHandler<ByteBuffer> {
         @Override
         public void handle(AgentAsynRpc rpc, TLV<ByteBuffer> idFrame) {
+        	if (idFrame.tag != Agent.PublicService.Agent.id) {
+        		System.out.println("recv msg");
+        		return;
+        	}
+        	
         	TV<ByteBuffer> msgFrame = ByteBufferParser.parseTV(idFrame.body);
         	Agent.MsgType msgType = Agent.getMsgType(msgFrame.tag);
         	if (msgType == Agent.MsgType.Unknown) {
@@ -175,7 +191,7 @@ public class Main {
         		return;
         	}
         	Response response = Agent.decodeAgentResponse(msgType, new ByteBufferInputStream(msgFrame.body), rpc.getSerializer());
-            System.out.println("recv message from " + idFrame.tag + ": " + msgType.name() + ":" + response.toString());
+            System.out.println("recv message from " + idFrame.tag + ": " + msgType.name() + ":" + StringUtil.toString(response));
         }
     }
 }

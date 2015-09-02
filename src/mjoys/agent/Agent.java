@@ -157,6 +157,7 @@ public class Agent {
     			response = serializer.decode(in, GetTagResponse.class);
     			break;
     		case ListenConnection:
+    			response = serializer.decode(in, ListenConnectionResponse.class);
     			break;
     		case NotifyConnection:
     			response = serializer.decode(in, NotifyConnectionResponse.class);
@@ -164,10 +165,10 @@ public class Agent {
     		case SetTag:
     			response = serializer.decode(in, SetTagResponse.class);
     			break;
-    		case Route:
-    			break;
     		case Unknown:
     			response = serializer.decode(in, Response.class);
+    			break;
+    		case Route:
     			break;
     		default:
     			break;
