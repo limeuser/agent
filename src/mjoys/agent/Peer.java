@@ -77,6 +77,9 @@ public class Peer<Channel> {
         }
         
         for (String key : this.listeningTags.keySet()) {
+        	if (tags.containsKey(key) == false) {
+        		return false;
+        	}
             String listeningValue = this.listeningTags.get(key);
             if (!listeningValue.isEmpty() && !listeningValue.equals(tags.get(key))) {
                 return false;
