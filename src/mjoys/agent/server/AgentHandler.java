@@ -177,7 +177,7 @@ public class AgentHandler<Channel> {
         }
         peer.setListenTags(tags);
         
-        logger.log("GetId: request:%s", request);
+        logger.log("ListenConnection: request:%s", request);
         
         return new ListenConnectionResponse();
     }

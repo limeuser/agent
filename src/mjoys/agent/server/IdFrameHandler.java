@@ -208,10 +208,12 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
     
     private void notifyConnection(Peer<Channel> connectionPeer, NotifyConnectionResponse.Action action) {
         for (Peer<Channel> peer : agentCtx.getIdMap().values()) {
-            Response response = this.handler.getNotifyConnectionResponse(peer, connectionPeer, action);
-            if (response != null) {
-                sendData(peer.getChannel(), Agent.PublicService.Agent.id, Agent.MsgType.NotifyConnection, response);
-            }
+        	if (peer.isListening(connectionPeer.getTags())) {
+	            Response response = this.handler.getNotifyConnectionResponse(peer, connectionPeer, action);
+	            if (response != null) {
+	                sendData(peer.getChannel(), Agent.PublicService.Agent.id, Agent.MsgType.NotifyConnection, response);
+	            }
+        	}
         }
     }
     
