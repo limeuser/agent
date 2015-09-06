@@ -152,7 +152,7 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         idFrame.body.setInt(0, srcHost.getId());
         idFrame.body.resetReaderIndex();
         dstHost.getChannel().writeAndFlush(idFrame.body);
-        //logger.log("route a message:%d from %s to %s", idFrame.body.readableBytes(), srcHost.toString(), dstHost.toString());
+        logger.log("route a message:%d from %s to %s", idFrame.body.readableBytes(), srcHost.toString(), dstHost.toString());
     }
     
     @Override
