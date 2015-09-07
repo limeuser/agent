@@ -17,8 +17,8 @@ public class IdFrameDecoder extends ByteToMessageDecoder {
 			return;
 		}
 		
-		int id = in.getInt(0);
-		int bodyLength = in.getInt(4);
+		int id = in.getInt(in.readerIndex());
+		int bodyLength = in.getInt(in.readerIndex() + 4);
 		int frameLength = Agent.HeadLength + bodyLength;
 		if (in.readableBytes() < frameLength) {
 			return;
@@ -27,11 +27,8 @@ public class IdFrameDecoder extends ByteToMessageDecoder {
 		frame.tag = id;
 		frame.length = bodyLength;
 		frame.body = Unpooled.buffer(frameLength);
-		int before = in.readableBytes();
 		in.readBytes(frame.body);
-		int after = in.readableBytes();
 		frame.body.skipBytes(Agent.HeadLength);
 		out.add(frame);
-		System.out.println(String.format("decode message%d:%d, id=%d,length=%d", before, after, id, bodyLength));
 	}
 }
