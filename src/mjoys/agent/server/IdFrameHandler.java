@@ -69,11 +69,10 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
 		TLV<ByteBuf> idFrame = (TLV<ByteBuf>)msg;
         if (idFrame.tag == Agent.PublicService.Agent.id) {
             processRequest(peer, idFrame);
+            idFrame.body.release();
         } else {
             route(peer, idFrame);
         }
-        
-        idFrame.body.release();
     }
 
     private void processRequest(Peer<Channel> peer, TLV<ByteBuf> idFrame) {
@@ -143,6 +142,7 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
         Peer<Channel> dstHost = agentCtx.getIdMap().get(dstId);
         if (dstHost == null) {
             logger.log("can't find router connection destid=%d", dstId);
+            idFrame.body.release();
             sendError(srcHost.getChannel(), Agent.MsgType.Route, Agent.Error.NoConnection);
             return;
         }
