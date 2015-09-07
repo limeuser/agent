@@ -1,13 +1,14 @@
 package mjoys.agent.server;
 
-import java.util.List;
-
-import mjoys.agent.Agent;
-import mjoys.frame.TLV;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+
+import java.util.List;
+
+import mjoys.agent.Agent;
+import mjoys.frame.TLV;
 
 public class IdFrameDecoder extends ByteToMessageDecoder {
 	@Override
@@ -16,22 +17,19 @@ public class IdFrameDecoder extends ByteToMessageDecoder {
 			return;
 		}
 		
-		int id = in.readInt();
-		int bodyLength = in.readInt();
-		if (in.readableBytes() < bodyLength) {
-			in.resetReaderIndex();
+		int id = in.getInt(0);
+		int bodyLength = in.getInt(4);
+		int frameLength = Agent.HeadLength + bodyLength;
+		if (in.readableBytes() < frameLength) {
 			return;
 		}
-		in.resetReaderIndex();
-		int readableBytes = in.readableBytes();
+		
 		TLV<ByteBuf> frame = new TLV<ByteBuf>();
 		frame.tag = id;
 		frame.length = bodyLength;
-		frame.body = Unpooled.buffer(Agent.HeadLength + bodyLength);
+		frame.body = Unpooled.buffer(frameLength);
 		in.readBytes(frame.body);
-		int frameBodyLength = in.readableBytes();
 		frame.body.skipBytes(Agent.HeadLength);
 		out.add(frame);
-		System.out.println(String.format("decode a message: readablebytes:%d:%d", readableBytes, frameBodyLength));
 	}
 }
