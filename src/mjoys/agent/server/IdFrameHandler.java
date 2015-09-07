@@ -58,24 +58,22 @@ public class IdFrameHandler extends ChannelInboundHandlerAdapter {
     
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        try {
-            Peer<Channel> peer = agentCtx.getChannelMap().get(ctx.channel());
-    
-            if (peer == null) {
-                peer = addNewPeer(ctx.channel());
-                logger.log("add new peer when channelRead:%s", peer.toString());
-            }
-            
-            @SuppressWarnings("unchecked")
-			TLV<ByteBuf> idFrame = (TLV<ByteBuf>)msg;
-            if (idFrame.tag == Agent.PublicService.Agent.id) {
-                processRequest(peer, idFrame);
-            } else {
-                route(peer, idFrame);
-            }
-        } finally {
-            ReferenceCountUtil.release(msg);
+        Peer<Channel> peer = agentCtx.getChannelMap().get(ctx.channel());
+
+        if (peer == null) {
+            peer = addNewPeer(ctx.channel());
+            logger.log("add new peer when channelRead:%s", peer.toString());
         }
+        
+        @SuppressWarnings("unchecked")
+		TLV<ByteBuf> idFrame = (TLV<ByteBuf>)msg;
+        if (idFrame.tag == Agent.PublicService.Agent.id) {
+            processRequest(peer, idFrame);
+        } else {
+            route(peer, idFrame);
+        }
+        
+        idFrame.body.release();
     }
 
     private void processRequest(Peer<Channel> peer, TLV<ByteBuf> idFrame) {
