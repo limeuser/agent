@@ -82,6 +82,9 @@ public class AgentAsynRpc {
             	int length = 0;
             	try {
             		length = client.recv(recvBuffer);
+            		if (length <= 0) {
+            			continue;
+            		}
             		TLV<ByteBuffer> idFrame = ByteBufferParser.parseTLV(ByteBuffer.wrap(recvBuffer, 0, length));
             		if (idFrame == null) {
             			
@@ -103,7 +106,7 @@ public class AgentAsynRpc {
     	
     	try {
     		Agent.encodeBody(id, byteBuffer, body);
-    		client.send(byteBuffer.array(), byteBuffer.position(), byteBuffer.remaining());
+			client.send(byteBuffer.array(), byteBuffer.position(), byteBuffer.remaining());
     	} catch (SocketException e) {
     		logger.log("agent asyn rpc socket exception, reconnect", e);
     		client.reconnect();

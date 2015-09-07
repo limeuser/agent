@@ -22,15 +22,16 @@ public class IdFrameDecoder extends ByteToMessageDecoder {
 			in.resetReaderIndex();
 			return;
 		}
-		
-		// copy frame buffer
+		in.resetReaderIndex();
+		int readableBytes = in.readableBytes();
 		TLV<ByteBuf> frame = new TLV<ByteBuf>();
 		frame.tag = id;
 		frame.length = bodyLength;
 		frame.body = Unpooled.buffer(Agent.HeadLength + bodyLength);
-		in.resetReaderIndex();
 		in.readBytes(frame.body);
+		int frameBodyLength = in.readableBytes();
 		frame.body.skipBytes(Agent.HeadLength);
 		out.add(frame);
+		System.out.println(String.format("decode a message: readablebytes:%d:%d", readableBytes, frameBodyLength));
 	}
 }
