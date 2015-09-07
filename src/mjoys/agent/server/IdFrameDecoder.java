@@ -23,13 +23,15 @@ public class IdFrameDecoder extends ByteToMessageDecoder {
 		if (in.readableBytes() < frameLength) {
 			return;
 		}
-		
 		TLV<ByteBuf> frame = new TLV<ByteBuf>();
 		frame.tag = id;
 		frame.length = bodyLength;
 		frame.body = Unpooled.buffer(frameLength);
+		int before = in.readableBytes();
 		in.readBytes(frame.body);
+		int after = in.readableBytes();
 		frame.body.skipBytes(Agent.HeadLength);
 		out.add(frame);
+		System.out.println(String.format("decode message%d:%d, id=%d,length=%d", before, after, id, bodyLength));
 	}
 }
